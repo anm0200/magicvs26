@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@200;300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+body {
+  font-family: 'Manrope', sans-serif;
+  @apply bg-surface text-on-surface min-h-screen flex flex-col;
+}
+
+h1, h2, h3, .font-headline {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.glass-panel {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.arcane-gradient {
+  background: linear-gradient(45deg, #ecb2ff, #8e44ad);
+}
+
+.hero-mask {
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
+.selection\:bg-primary\/30::selection {
+  background-color: rgba(236, 178, 255, 0.3);
+}
