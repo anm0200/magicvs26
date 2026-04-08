@@ -1,5 +1,5 @@
 <!-- Section Header -->
-<header class="max-w-screen-2xl mx-auto px-6 pt-16 pb-12">
+<header class="max-w-screen-2xl mx-auto px-6 pt-32 pb-12">
   <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
     <div class="max-w-3xl">
       <h1 class="text-5xl md:text-7xl font-headline font-bold text-on-surface tracking-tight mb-4">
@@ -19,7 +19,7 @@
 
 <!-- News Content Canvas -->
 <section class="max-w-screen-2xl mx-auto px-6 pb-24">
-  <div class="asymmetric-grid">
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
     @for (item of news(); track item.id) {
     <!-- News Card -->
     <article class="group relative flex flex-col bg-surface-container rounded-xl overflow-hidden border border-outline-variant/10 transition-all duration-300 hover:shadow-2xl hover:shadow-primary-container/10">
@@ -54,7 +54,7 @@
 
 <!-- Newsletter / CTA Asymmetric Section -->
 <section class="max-w-screen-2xl mx-auto px-6 pb-24">
-  <div class="relative bg-surface-container-low rounded-2xl p-8 md:p-16 overflow-hidden border border-outline-variant/5">
+  <div class="relative bg-zinc-900/50 rounded-2xl p-8 md:p-16 overflow-hidden border border-white/5 backdrop-blur-sm">
     <div class="absolute top-0 right-0 w-1/2 h-full opacity-10 pointer-events-none">
       <img alt="Decorative background" class="w-full h-full object-cover grayscale" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGkeWgYNsYGWg6R5maF7tyY_gGjMLEn6oYxnDdGUZ1B0xfKCyUh8ZdN2__9da7h1KEjxe6GhJgNPcC-kKVocWS4cfI1evhFTqi2I-e80T4LVuwCJ3RggRawpE3Ik8t0_dA6NTUSQLjPLc0JxlQefo6glyCnLT5WMdvAO65i7LtzkAbtZ6EpcVaWwBXx0vBd0KOyDTeBJM44hjFfkIXmGBorR-e8rSdXZkiFYDr-EJbe85Lm5Nu3whPOQQ6MokROs-qQMPsa_Edh2Hz">
     </div>
@@ -62,8 +62,8 @@
       <h2 class="text-3xl md:text-4xl font-headline font-bold mb-6">No te pierdas ni un solo <span class="text-primary italic">draw step</span>.</h2>
       <p class="text-on-surface-variant mb-8 text-lg">Suscríbete a nuestra newsletter semanal para recibir el resumen del meta directamente en tu correo.</p>
       <form class="flex flex-col sm:flex-row gap-4">
-        <input class="flex-grow bg-surface-container-lowest border-0 border-b border-outline-variant/30 focus:ring-0 focus:border-primary text-on-surface py-4 px-0 transition-all font-body" placeholder="tu@correo.com" type="email">
-        <button class="px-8 py-4 bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold uppercase tracking-widest text-sm hover:shadow-[0_0_20px_rgba(142,68,173,0.4)] transition-all" type="submit">
+        <input class="flex-grow bg-[#131313] border border-white/10 focus:ring-1 focus:ring-primary focus:border-primary text-white py-4 px-6 transition-all font-body placeholder:text-zinc-600 rounded-lg outline-none" placeholder="tu@correo.com" type="email">
+        <button class="px-8 py-4 bg-gradient-to-r from-primary to-primary-container text-white font-bold uppercase tracking-widest text-sm hover:shadow-[0_0_20px_rgba(142,68,173,0.4)] transition-all rounded-lg" type="submit">
           Suscribirme
         </button>
       </form>
