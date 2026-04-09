@@ -61,11 +61,11 @@ export class CardService {
   ];
 
   getCards(): Observable<Card[]> {
-    return of(this.cards).pipe(delay(1500)); // Simulating API delay
+    return of(this.cards).pipe(delay(500)); // Simulating API delay
   }
 
   getCardById(id: string): Observable<Card | undefined> {
     const card = this.cards.find(c => c.id === id);
-    return of(card).pipe(delay(500));
+    return of(card).pipe(delay(200));
   }
 }

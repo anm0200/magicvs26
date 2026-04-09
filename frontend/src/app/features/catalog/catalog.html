@@ -1,4 +1,4 @@
-<main class="min-h-screen pt-12 pb-24 px-6 md:px-12 max-w-[1600px] mx-auto">
+<main class="min-h-screen pt-32 pb-24 px-6 max-w-screen-2xl mx-auto">
   <header class="mb-16 space-y-8">
     <div class="flex flex-col items-center text-center space-y-4">
       <h1 class="font-headline text-5xl md:text-7xl font-bold tracking-tighter text-primary">
@@ -15,7 +15,9 @@
         <span class="material-symbols-outlined text-primary text-2xl">search</span>
       </div>
       <input
-        class="w-full bg-surface-container-lowest border-b border-outline-variant py-6 pl-16 pr-8 text-xl font-headline focus:outline-none focus:border-secondary transition-all placeholder:text-surface-container-highest"
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+        class="w-full bg-surface-container border-b border-outline-variant py-6 pl-16 pr-8 text-xl font-headline focus:outline-none focus:border-secondary transition-all placeholder:text-surface-container-highest rounded-t-xl"
         placeholder="Buscar cartas por nombre, texto o tipo..." type="text" />
       <div
         class="absolute bottom-0 left-0 w-0 h-[2px] bg-secondary transition-all duration-500 group-focus-within:w-full shadow-[0_0_8px_rgba(146,204,255,0.6)]">
@@ -26,52 +28,68 @@
   <section class="flex flex-col lg:flex-row gap-8 mb-12 lg:items-center justify-between items-center">
     <div class="flex flex-wrap gap-4 items-center">
       <div class="flex gap-2">
-        <button
-          class="w-10 h-10 rounded-full border border-outline-variant hover:border-on-surface transition-colors flex items-center justify-center bg-white/5"
-          title="White"><span class="font-headline font-bold text-xs">W</span></button>
-        <button
-          class="w-10 h-10 rounded-full border border-outline-variant hover:border-on-surface transition-colors flex items-center justify-center bg-white/5"
-          title="Blue"><span class="font-headline font-bold text-xs">U</span></button>
-        <button
-          class="w-10 h-10 rounded-full border-2 border-primary-container bg-surface-container-high mana-glow-black transition-all flex items-center justify-center"
-          title="Black (Active)"><span class="font-headline font-bold text-xs text-primary">B</span></button>
-        <button
-          class="w-10 h-10 rounded-full border border-outline-variant hover:border-on-surface transition-colors flex items-center justify-center bg-white/5"
-          title="Red"><span class="font-headline font-bold text-xs">R</span></button>
-        <button
-          class="w-10 h-10 rounded-full border-2 border-green-500 bg-surface-container-high mana-glow-green transition-all flex items-center justify-center"
-          title="Green (Active)"><span class="font-headline font-bold text-xs text-green-400">G</span></button>
-        <button
-          class="w-10 h-10 rounded-full border border-outline-variant hover:border-on-surface transition-colors flex items-center justify-center bg-white/5"
-          title="Colorless"><span class="font-headline font-bold text-xs">C</span></button>
+        @for (mana of ['W', 'U', 'B', 'R', 'G', 'C']; track mana) {
+          <button
+            (click)="toggleMana(mana)"
+            [ngClass]="{
+              'border-primary shadow-[0_0_15px_rgba(142,68,173,0.3)] bg-primary/10': activeMana() === mana,
+              'border-outline-variant hover:border-on-surface bg-white/5': activeMana() !== mana
+            }"
+            class="w-10 h-10 rounded-full border transition-all flex items-center justify-center group"
+            [title]="mana">
+            <span class="font-headline font-bold text-xs group-hover:scale-110 transition-transform"
+                  [ngClass]="{'text-primary': activeMana() === mana}">{{ mana }}</span>
+          </button>
+        }
       </div>
 
       <div class="h-8 w-px bg-outline-variant mx-2 hidden md:block"></div>
 
       <div class="flex gap-3">
-        <div class="relative">
-          <select
-            class="appearance-none glass-panel border border-outline-variant rounded-xl px-6 py-2.5 pr-12 text-sm focus:outline-none focus:border-primary transition-all cursor-pointer">
-            <option>Tipo</option>
-            <option>Criatura</option>
-            <option>Instantáneo</option>
-            <option>Conjuro</option>
-            <option>Encantamiento</option>
-          </select>
-          <span
-            class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-sm">expand_more</span>
+        <!-- Custom Type Dropdown -->
+        <div class="relative dropdown-trigger">
+          <button 
+            (click)="showTypeDropdown.set(!showTypeDropdown())"
+            class="glass-panel border border-outline-variant hover:border-primary rounded-xl px-6 py-2.5 pr-12 text-sm focus:outline-none transition-all cursor-pointer flex items-center gap-2 min-w-[140px] justify-between">
+            <span>{{ activeType() }}</span>
+            <span class="material-symbols-outlined text-on-surface-variant text-sm transition-transform" [class.rotate-180]="showTypeDropdown()">expand_more</span>
+          </button>
+          
+          @if (showTypeDropdown()) {
+            <div class="absolute top-full left-0 w-full mt-2 glass-panel border border-outline-variant rounded-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+              @for (type of ['Tipo', 'Criatura', 'Instantáneo', 'Conjuro', 'Encantamiento']; track type) {
+                <div 
+                  (click)="selectType(type)"
+                  class="px-6 py-2.5 text-sm hover:bg-primary/20 cursor-pointer transition-colors"
+                  [class.text-primary]="activeType() === type">
+                  {{ type }}
+                </div>
+              }
+            </div>
+          }
         </div>
-        <div class="relative">
-          <select
-            class="appearance-none glass-panel border border-outline-variant rounded-xl px-6 py-2.5 pr-12 text-sm focus:outline-none focus:border-primary transition-all cursor-pointer">
-            <option>Rareza</option>
-            <option>Common</option>
-            <option>Uncommon</option>
-            <option>Rare</option>
-            <option>Mythic</option>
-          </select>
-          <span
-            class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant text-sm">expand_more</span>
+
+        <!-- Custom Rarity Dropdown -->
+        <div class="relative dropdown-trigger">
+          <button 
+            (click)="showRarityDropdown.set(!showRarityDropdown())"
+            class="glass-panel border border-outline-variant hover:border-primary rounded-xl px-6 py-2.5 pr-12 text-sm focus:outline-none transition-all cursor-pointer flex items-center gap-2 min-w-[140px] justify-between">
+            <span>{{ activeRarity() }}</span>
+            <span class="material-symbols-outlined text-on-surface-variant text-sm transition-transform" [class.rotate-180]="showRarityDropdown()">expand_more</span>
+          </button>
+          
+          @if (showRarityDropdown()) {
+            <div class="absolute top-full left-0 w-full mt-2 glass-panel border border-outline-variant rounded-xl overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2 duration-200">
+              @for (rarity of ['Rareza', 'Common', 'Uncommon', 'Rare', 'Mythic']; track rarity) {
+                <div 
+                  (click)="selectRarity(rarity)"
+                  class="px-6 py-2.5 text-sm hover:bg-primary/20 cursor-pointer transition-colors"
+                  [class.text-primary]="activeRarity() === rarity">
+                  {{ rarity }}
+                </div>
+              }
+            </div>
+          }
         </div>
       </div>
     </div>
@@ -82,7 +100,7 @@
         <span class="material-symbols-outlined text-xl group-hover:scale-110 transition-transform text-on-surface-variant group-hover:text-primary">favorite</span>
         <span class="text-sm font-label uppercase tracking-wider text-on-surface-variant group-hover:text-on-surface">Favoritos</span>
       </button>
-      <button class="text-secondary text-sm font-label uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-2 group">
+      <button (click)="resetFilters()" class="text-secondary text-sm font-label uppercase tracking-widest hover:text-primary transition-colors flex items-center gap-2 group">
         <span class="material-symbols-outlined text-lg group-hover:rotate-180 transition-transform duration-500">refresh</span>
         Limpiar filtros
       </button>
@@ -91,7 +109,7 @@
 
   <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
     <!-- State: Loading -->
-    @if (isLoading) {
+    @if (isLoading()) {
       @for (i of [1,2,3,4,5,6,7,8,9,10]; track i) {
         <div class="aspect-[2.5/3.5] bg-surface-container-high rounded-xl animate-pulse relative overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-[-20deg] translate-x-[-100%] animate-[shimmer_2s_infinite]"></div>
@@ -103,7 +121,7 @@
       }
     } @else {
       <!-- State: Loaded -->
-      @for (card of cards; track card.id) {
+      @for (card of cards(); track card.id) {
         <div [routerLink]="['/cartas', card.id]" 
              class="group relative aspect-[2.5/3.5] bg-surface-container rounded-xl overflow-hidden hover:scale-[1.02] transition-all duration-300 shadow-xl hover:shadow-primary/10 cursor-pointer">
           <img class="w-full h-full object-cover" [src]="card.imageUrl" [alt]="card.name" />
