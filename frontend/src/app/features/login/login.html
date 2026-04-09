@@ -28,13 +28,14 @@
         />
       </div>
 
-      <div
-        *ngIf="error"
-        id="loginError"
-        style="background: transparent; color: #ff6b6b; padding: 0; margin-top: 8px; margin-bottom: 8px; border-radius: 0; text-align: center; font-size: 14px; font-weight: 500;"
-      >
-        {{ error }}
-      </div>
+      @if (error) {
+        <div
+          id="loginError"
+          style="background: transparent; color: #ff6b6b; padding: 0; margin-top: 8px; margin-bottom: 8px; border-radius: 0; text-align: center; font-size: 14px; font-weight: 500;"
+        >
+          {{ error }}
+        </div>
+      }
 
       <button
         type="button"
@@ -45,9 +46,11 @@
         {{ loading ? 'Entrando...' : 'Entrar' }}
       </button>
 
-      <p *ngIf="message" class="text-emerald-400 text-sm mt-4 text-center">
-        {{ message }}
-      </p>
+      @if (message) {
+        <p class="text-emerald-400 text-sm mt-4 text-center">
+          {{ message }}
+        </p>
+      }
     </div>
   </div>
 </section>

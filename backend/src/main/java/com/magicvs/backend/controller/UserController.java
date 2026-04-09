@@ -37,7 +37,7 @@ public class UserController {
     // ---- Endpoints expuestos para Registro y Login ----
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@RequestBody RegistroRequest request) {
+    public ResponseEntity<?> register(@RequestBody RegistroRequest request) {
         try {
             User user = registroService.registrar(request.username, request.email, request.password, request.displayName);
             String token = authService.createSession(user.getId());
@@ -45,12 +45,12 @@ public class UserController {
             resp.token = token;
             return ResponseEntity.status(HttpStatus.CREATED).body(resp);
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("message", ex.getMessage()));
         }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
             User user = loginService.login(request.usernameOrEmail, request.password);
             String token = authService.createSession(user.getId());
@@ -58,7 +58,7 @@ public class UserController {
             resp.token = token;
             return ResponseEntity.ok(resp);
         } catch (IllegalArgumentException ex) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, ex.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(java.util.Map.of("message", ex.getMessage()));
         }
     }
 
