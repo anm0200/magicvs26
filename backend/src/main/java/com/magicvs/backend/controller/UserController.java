@@ -19,12 +19,14 @@ public class UserController {
     private final LoginService loginService;
     private final AuthService authService;
     private final RegistroRepository registroRepository;
+    private final com.magicvs.backend.service.RegistrationVerificationService verificationService;
 
-    public UserController(RegistroService registroService, LoginService loginService, AuthService authService, RegistroRepository registroRepository) {
+    public UserController(RegistroService registroService, LoginService loginService, AuthService authService, RegistroRepository registroRepository, com.magicvs.backend.service.RegistrationVerificationService verificationService) {
         this.registroService = registroService;
         this.loginService = loginService;
         this.authService = authService;
         this.registroRepository = registroRepository;
+        this.verificationService = verificationService;
     }
 
     @GetMapping("/exists")
@@ -59,6 +61,35 @@ public class UserController {
             return ResponseEntity.ok(resp);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(java.util.Map.of("message", ex.getMessage()));
+        }
+    }
+
+    @PostMapping("/register/initiate")
+    public ResponseEntity<?> initiate(@RequestBody RegistroRequest request) {
+        try {
+            var pending = verificationService.initiate(request.username, request.email, request.password, request.displayName);
+            return ResponseEntity.ok(java.util.Map.of("pendingId", pending.getId()));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("message", ex.getMessage()));
+        } catch (Exception ex) {
+            String msg = ex.getMessage() != null ? ex.getMessage() : "Error interno al iniciar el registro";
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(java.util.Map.of("message", msg));
+        }
+    }
+
+    @PostMapping("/register/confirm")
+    public ResponseEntity<?> confirm(@RequestBody ConfirmRequest request) {
+        try {
+            User user = verificationService.confirm(request.pendingId, request.code);
+            String token = authService.createSession(user.getId());
+            UserResponse resp = UserResponse.fromEntity(user);
+            resp.token = token;
+            return ResponseEntity.status(HttpStatus.CREATED).body(resp);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("message", ex.getMessage()));
+        } catch (Exception ex) {
+            String msg = ex.getMessage() != null ? ex.getMessage() : "Error interno al confirmar registro";
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(java.util.Map.of("message", msg));
         }
     }
 
@@ -116,5 +147,10 @@ public class UserController {
             resp.friendsCount = user.getFriendsCount();
             return resp;
         }
+    }
+
+    public static class ConfirmRequest {
+        public Long pendingId;
+        public String code;
     }
 }

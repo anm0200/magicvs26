@@ -22,7 +22,7 @@ export class Registro {
   error: string | null = null;
   loading = false;
 
-  private readonly apiUrl = 'http://localhost:8080/api/users/register';
+  private readonly apiUrlInitiate = 'http://localhost:8080/api/users/register/initiate';
 
   constructor(private http: HttpClient, private router: Router, private cdr: ChangeDetectorRef, private ngZone: NgZone) {}
 
@@ -58,7 +58,7 @@ export class Registro {
 
     this.loading = true;
     this.http
-      .post<UserResponse>(this.apiUrl, {
+      .post<{ pendingId: number }>(this.apiUrlInitiate, {
         username: this.username,
         email: this.email,
         password: this.password,
@@ -73,15 +73,10 @@ export class Registro {
         })
       )
       .subscribe({
-        next: (user) => {
+        next: (resp) => {
           this.ngZone.run(() => {
-            this.message = `Cuenta creada. Bienvenido, ${user.displayName ?? user.username}!`;
-            if (user.token) {
-              localStorage.setItem('token', user.token);
-            }
-            localStorage.setItem('user', JSON.stringify(user));
-            this.cdr.detectChanges();
-            this.router.navigateByUrl('/');
+            // navigate to verification page with pendingId
+            this.router.navigateByUrl(`/verify/${resp.pendingId}`);
           });
         },
         error: (err: HttpErrorResponse) => {
@@ -104,6 +99,8 @@ export class Registro {
               }
             } else if (err.status === 409) {
               this.error = backendMsg ?? 'Recurso en conflicto';
+            } else if (err.status === 502) {
+              this.error = backendMsg ?? 'No se pudo enviar el correo de verificación (SMTP)';
             } else if (err.status === 0) {
               this.error = 'No se ha podido conectar con el servidor';
             } else {
