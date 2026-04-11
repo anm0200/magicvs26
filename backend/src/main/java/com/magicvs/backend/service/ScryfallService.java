@@ -48,16 +48,7 @@ public class ScryfallService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady() {
-        if (cardRepository.count() == 0) {
-            logger.info("Base de datos de cartas vacía. Iniciando importación automática de Standard (Solo Español)...");
-            importStandardCards();
-            logger.info("Importación automática completada.");
-        } else {
-            logger.info("Base de datos de cartas ya poblada. Omitiendo importación inicial.");
-        }
-    }
+
 
     /**
      * Importa todas las cartas del formato Standard actual.
