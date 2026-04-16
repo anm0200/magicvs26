@@ -5,11 +5,14 @@ import com.magicvs.backend.service.RegistroService;
 import com.magicvs.backend.service.LoginService;
 import com.magicvs.backend.service.AuthService;
 import com.magicvs.backend.repository.RegistroRepository;
+import com.magicvs.backend.dto.UserDirectoryResponseDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
@@ -34,6 +37,15 @@ public class UserController {
         String value = usernameOrEmail.trim();
         boolean exists = loginService.existsByUsernameOrEmail(value);
         return ResponseEntity.ok(Map.of("exists", exists));
+    }
+
+    @GetMapping
+    public ResponseEntity<List<UserDirectoryResponseDto>> getAllUsers() {
+        List<UserDirectoryResponseDto> users = registroRepository.findAll().stream()
+                .filter(User::getActive)
+                .map(UserDirectoryResponseDto::fromEntity)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
     }
 
     // ---- Endpoints expuestos para Registro y Login ----
