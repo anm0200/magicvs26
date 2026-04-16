@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CardService, CardPage } from '../../core/services/card.service';
 import { Card } from '../../models/card.model';
+import { computed } from '@angular/core';
 
 @Component({
   selector: 'app-catalog',
@@ -29,6 +30,37 @@ export class CatalogComponent implements OnInit {
   activeRarity = signal('Rareza');
   searchQuery = signal('');
 
+  filteredCards = computed(() => {
+    const pageData = this.cardPage();
+    // Importante: Verifica si 'content' es el nombre correcto en tu CardPage
+    const cards = pageData?.cards || []; 
+    
+    const query = this.searchQuery().toLowerCase().trim();
+    const type = this.activeType();
+    const rarity = this.activeRarity();
+    const mana = this.activeMana();
+
+    return cards.filter(card => {
+      // 1. Filtro por texto
+      const matchesQuery = !query || 
+        card.name.toLowerCase().includes(query) || 
+        (card.name && card.name.toLowerCase().includes(query)) || 
+        (card.type && card.type.toLowerCase().includes(query)) ||
+        (card.oracleText && card.oracleText.toLowerCase().includes(query));
+
+      // 2. Filtro por Dropdown de Tipo
+      const matchesType = type === 'Tipo' || card.type === type;
+
+      // 3. Filtro por Dropdown de Rareza
+      const matchesRarity = rarity === 'Rareza' || card.rarity === rarity;
+
+      // 4. Filtro por Maná
+      const matchesMana = !mana || card.manaCost?.includes(mana);
+
+      return matchesQuery && matchesType && matchesRarity && matchesMana;
+    });
+  });
+
   // Dropdown visibility signals
   showTypeDropdown = signal(false);
   showRarityDropdown = signal(false);
@@ -43,6 +75,13 @@ export class CatalogComponent implements OnInit {
       this.showTypeDropdown.set(false);
       this.showRarityDropdown.set(false);
     }
+  }
+
+  onSearch(event: any): void {
+    const value = event.target.value;
+    this.searchQuery.set(value);
+    this.currentPage.set(0); 
+    this.loadCards(0);
   }
 
   toggleMana(mana: string): void {

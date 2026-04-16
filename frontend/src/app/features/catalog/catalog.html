@@ -16,7 +16,7 @@
       </div>
       <input
         [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
+        (input)="onSearch($event)"
         class="w-full bg-surface-container border-b border-outline-variant py-6 pl-16 pr-8 text-xl font-headline focus:outline-none focus:border-secondary transition-all placeholder:text-surface-container-highest rounded-t-xl"
         placeholder="Buscar cartas por nombre, texto o tipo..." type="text" />
       <div
@@ -121,7 +121,7 @@
       }
     } @else {
       <!-- State: Loaded -->
-      @for (card of cardPage()?.cards; track card.id) {
+      @for (card of filteredCards(); track card.id) {
         <div [routerLink]="['/cartas', card.id]" 
              class="group relative aspect-[2.5/3.5] bg-surface-container rounded-xl overflow-hidden hover:scale-[1.02] transition-all duration-300 shadow-xl hover:shadow-primary/10 cursor-pointer">
           <img

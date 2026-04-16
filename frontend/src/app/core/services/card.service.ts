@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Card } from '../../models/card.model';
@@ -19,11 +19,17 @@ export class CardService {
 
   constructor(private http: HttpClient) {}
 
-  getCards(page = 0, size = 20): Observable<CardPage> {
-    return this.http.get<any>(`${this.apiUrl}/list?page=${page}&size=${size}`).pipe(
-      map(response => this.mapResponseToCardPage(response, page, size))
-    );
+  getCards(page: number, name: string = ''): Observable<CardPage> {
+  let params = new HttpParams()
+    .set('page', page.toString())
+    .set('size', name ? '100' : '20'); // Si hay nombre, pedimos más cantidad para que parezca "total"
+
+  if (name) {
+    params = params.set('name', name);
   }
+
+  return this.http.get<CardPage>(`${this.apiUrl}`, { params });
+}
 
   getCardById(id: string): Observable<Card> {
     return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
@@ -90,11 +96,12 @@ export class CardService {
   }
 
   private normalizeLegalities(legalities: any): Card['legalities'] {
-    const defaultLegalities = {
-      standard: 'not_legal' as const,
-      pioneer: 'not_legal' as const,
-      modern: 'not_legal' as const,
-      commander: 'not_legal' as const
+    // Usamos los strings exactos que TypeScript espera (Mayúsculas y espacios)
+    const defaultLegalities: Card['legalities'] = {
+      standard: 'Not Legal',
+      pioneer: 'Not Legal',
+      modern: 'Not Legal',
+      commander: 'Not Legal'
     };
 
     if (!Array.isArray(legalities)) {
@@ -103,7 +110,13 @@ export class CardService {
 
     return legalities.reduce((result: Card['legalities'], entry: any) => {
       const format = entry.formatName?.toLowerCase();
-      const status = entry.legalityStatus || 'not_legal';
+      
+      // Mapeamos lo que viene del backend (ej: "not_legal") a lo que quiere el modelo (ej: "Not Legal")
+      let status: "Legal" | "Banned" | "Not Legal" = 'Not Legal';
+      
+      if (entry.legalityStatus === 'legal' || entry.legalityStatus === 'Legal') status = 'Legal';
+      if (entry.legalityStatus === 'banned' || entry.legalityStatus === 'Banned') status = 'Banned';
+
       if (format in result) {
         (result as any)[format] = status;
       }
