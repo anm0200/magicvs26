@@ -38,7 +38,7 @@ public class RegistrationVerificationService {
         this.mailSender = mailSender;
     }
 
-    public PendingRegistration initiate(String username, String email, String rawPassword, String displayName) {
+    public PendingRegistration initiate(String username, String email, String rawPassword, String displayName, String googleId) {
         String normalizedUsername = username.trim();
         String normalizedEmail = email.trim().toLowerCase(Locale.ROOT);
 
@@ -74,6 +74,7 @@ public class RegistrationVerificationService {
         pr.setDisplayName(ValidationUtils.sanitizeDisplayName(displayName != null ? displayName : ""));
         pr.setVerificationHash(codeHash);
         pr.setExpiresAt(LocalDateTime.now().plusMinutes(15));
+        pr.setGoogleId(googleId);
 
         PendingRegistration saved = pendingRepo.save(pr);
 
@@ -163,6 +164,7 @@ public class RegistrationVerificationService {
         user.setPasswordHash(pr.getPasswordHash());
         user.setDisplayName(pr.getDisplayName().isBlank() ? pr.getUsername() : pr.getDisplayName());
         user.setFriendTag(generateFriendTag());
+        user.setGoogleId(pr.getGoogleId());
 
         User savedUser = registroRepository.save(user);
         pendingRepo.delete(pr);

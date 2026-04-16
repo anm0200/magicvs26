@@ -10,6 +10,7 @@ import { CardDetailComponent } from './features/catalog/card-detail';
 import { Verification } from './features/verification/verification';
 import { ProfilePageComponent } from './features/profile/profile-page.component';
 import { DeckBuilderPageComponent } from './features/deck-builder/deck-builder-page.component';
+import { OAuthConfirm } from './features/oauth-confirm/oauth-confirm';
 
 export const routes: Routes = [
   {
@@ -21,6 +22,7 @@ export const routes: Routes = [
       { path: 'meta', component: MetaComponent },
       { path: 'login', component: Login },
       { path: 'registro', component: Registro },
+      { path: 'register/confirm', component: OAuthConfirm },
       { path: 'cartas', component: CatalogComponent },
       { path: 'cartas/:id', component: CardDetailComponent },
       { path: 'verify/:pendingId', component: Verification },

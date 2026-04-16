@@ -67,7 +67,7 @@ public class UserController {
     @PostMapping("/register/initiate")
     public ResponseEntity<?> initiate(@RequestBody RegistroRequest request) {
         try {
-            var pending = verificationService.initiate(request.username, request.email, request.password, request.displayName);
+            var pending = verificationService.initiate(request.username, request.email, request.password, request.displayName, null);
             return ResponseEntity.ok(java.util.Map.of("pendingId", pending.getId()));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(java.util.Map.of("message", ex.getMessage()));
