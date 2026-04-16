@@ -35,8 +35,8 @@ export interface Deck {
 })
 export class DeckBuilderService {
   private readonly apiUrl = 'http://localhost:8080/api/decks';
-  // Mínimo 60 para alinearse con la validación del backend.
-  private readonly minDeckCards = 60;
+  // En desarrollo usamos 10 para pruebas rápidas; en backend se controla por DECK_MIN_CARDS.
+  private readonly minDeckCards = 10;
 
   // Signals
   private deckNameSignal = signal<string>('Mi Nuevo Mazo');
@@ -215,7 +215,7 @@ export class DeckBuilderService {
     const deckData = {
       name: this.deckNameSignal(),
       description: this.deckDescriptionSignal(),
-      format: this.deckFormatSignal(),
+      format: 'STANDARD',
       isPublic: this.deckIsPublicSignal(),
       cards: this.deckCardsSignal().map(card => ({
         cardId: card.cardId,

@@ -98,7 +98,7 @@ public class DeckResponseDTO {
         dto.setId(deck.getId());
         dto.setName(deck.getName());
         dto.setDescription(deck.getDescription());
-        dto.setFormat(deck.getFormat().name());
+        dto.setFormat(deck.getFormat() != null ? deck.getFormat().name() : "STANDARD");
         dto.setTotalCards(deck.getTotalCards());
         dto.setIsPublic(deck.getPublic());
         dto.setCreatedAt(deck.getCreatedAt());

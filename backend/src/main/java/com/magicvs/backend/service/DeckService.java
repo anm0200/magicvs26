@@ -97,12 +97,7 @@ public class DeckService {
         deck.setUser(user);
         deck.setName(deckDTO.getName());
         deck.setDescription(deckDTO.getDescription());
-        
-        try {
-            deck.setFormat(DeckFormat.valueOf(deckDTO.getFormat().toUpperCase()));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Formato de mazo inválido: " + deckDTO.getFormat());
-        }
+        deck.setFormat(DeckFormat.STANDARD);
         
         deck.setPublic(deckDTO.getIsPublic() != null ? deckDTO.getIsPublic() : false);
 
@@ -158,7 +153,7 @@ public class DeckService {
         return new DeckSummaryDTO(
             deck.getId(),
             deck.getName(),
-            deck.getFormat().name(),
+            deck.getFormat() != null ? deck.getFormat().name() : DeckFormat.STANDARD.name(),
             deck.getTotalCards(),
             deck.getUpdatedAt(),
             deck.getPublic()

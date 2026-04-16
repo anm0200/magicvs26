@@ -1,8 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { DeckBuilderService, Card } from '../../core/services/deck-builder.service';
+import { DeckBuilderService, Card, DeckCard } from '../../core/services/deck-builder.service';
 import { DeckSearchPanelComponent } from './deck-search-panel.component';
 
 @Component({
@@ -18,7 +18,6 @@ export class DeckBuilderPageComponent {
   // Signals expuestas del servicio
   deckName = this.deckService.deckName;
   deckDescription = this.deckService.deckDescription;
-  deckFormat = this.deckService.deckFormat;
   deckIsPublic = this.deckService.deckIsPublic;
   deckCards = this.deckService.deckCards;
   totalCards = this.deckService.totalCards;
@@ -28,7 +27,49 @@ export class DeckBuilderPageComponent {
   loading = this.deckService.loading;
   error = this.deckService.error;
 
-  formats = ['STANDARD', 'MODERN', 'LEGACY', 'PAUPER'];
+  readonly deckFormatLabel = 'Standard';
+
+  readonly groupedDeckCards = computed(() => {
+    const groups = new Map<string, DeckCard[]>();
+
+    this.deckCards().forEach((card) => {
+      const group = this.resolveTypeGroup(card.cardType);
+      if (!groups.has(group)) {
+        groups.set(group, []);
+      }
+      groups.get(group)!.push(card);
+    });
+
+    return Array.from(groups.entries())
+      .map(([group, cards]) => ({
+        group,
+        cards: cards.sort((a, b) => a.cardName.localeCompare(b.cardName))
+      }))
+      .sort((a, b) => a.group.localeCompare(b.group));
+  });
+
+  readonly manaCurve = computed(() => {
+    const buckets = [0, 0, 0, 0, 0, 0, 0, 0];
+
+    this.deckCards().forEach((card) => {
+      const cmc = this.extractManaValue(card.manaCost);
+      const index = Math.min(cmc, 7);
+      buckets[index] += card.quantity;
+    });
+
+    return buckets.map((value, index) => ({
+      label: index === 7 ? '7+' : String(index),
+      value
+    }));
+  });
+
+  readonly maxCurveValue = computed(() => Math.max(1, ...this.manaCurve().map((bucket) => bucket.value)));
+
+  readonly deckGoal = 60;
+  readonly deckProgressPercent = computed(() => {
+    const ratio = (this.totalCards() / this.deckGoal) * 100;
+    return Math.max(0, Math.min(100, ratio));
+  });
 
   onNameChange(value: string): void {
     this.deckService.setDeckName(value);
@@ -36,10 +77,6 @@ export class DeckBuilderPageComponent {
 
   onDescriptionChange(value: string): void {
     this.deckService.setDeckDescription(value);
-  }
-
-  onFormatChange(value: string): void {
-    this.deckService.setDeckFormat(value);
   }
 
   onIsPublicChange(value: boolean): void {
@@ -82,12 +119,56 @@ export class DeckBuilderPageComponent {
 
   getColorClass(color: string): string {
     const colorMap: { [key: string]: string } = {
-      'white': 'bg-yellow-100 text-yellow-800',
-      'blue': 'bg-blue-100 text-blue-800',
-      'black': 'bg-gray-800 text-white',
-      'red': 'bg-red-100 text-red-800',
-      'green': 'bg-green-100 text-green-800'
+      white: 'bg-amber-100/10 text-amber-200 border border-amber-200/20',
+      blue: 'bg-sky-100/10 text-sky-200 border border-sky-200/20',
+      black: 'bg-violet-100/10 text-violet-200 border border-violet-200/20',
+      red: 'bg-rose-100/10 text-rose-200 border border-rose-200/20',
+      green: 'bg-emerald-100/10 text-emerald-200 border border-emerald-200/20'
     };
-    return colorMap[color] || 'bg-gray-100 text-gray-800';
+    return colorMap[color] || 'bg-surface-container text-on-surface border border-outline-variant';
+  }
+
+  getCurveBarHeight(value: number): number {
+    // Keep the previous visual baseline while allowing clear ascending growth.
+    if (value <= 0) {
+      return 8;
+    }
+
+    const maxValue = this.maxCurveValue();
+    const maxBarHeight = 64;
+    return Math.max(12, Math.round((value / maxValue) * maxBarHeight));
+  }
+
+  private extractManaValue(manaCost: string): number {
+    if (!manaCost) {
+      return 0;
+    }
+
+    let total = 0;
+    const symbols = manaCost.match(/\{([^}]+)\}/g) || [];
+    symbols.forEach((symbol) => {
+      const value = symbol.replace(/[{}]/g, '');
+      if (/^\d+$/.test(value)) {
+        total += Number(value);
+        return;
+      }
+      total += 1;
+    });
+
+    return total;
+  }
+
+  private resolveTypeGroup(typeLine: string): string {
+    const normalized = (typeLine || '').toLowerCase();
+
+    if (normalized.includes('creature') || normalized.includes('criatura')) return 'Criaturas';
+    if (normalized.includes('instant') || normalized.includes('instantáneo')) return 'Instantáneos';
+    if (normalized.includes('sorcery') || normalized.includes('conjuro')) return 'Conjuros';
+    if (normalized.includes('enchantment') || normalized.includes('encantamiento')) return 'Encantamientos';
+    if (normalized.includes('artifact') || normalized.includes('artefacto')) return 'Artefactos';
+    if (normalized.includes('planeswalker')) return 'Planeswalkers';
+    if (normalized.includes('land') || normalized.includes('tierra')) return 'Tierras';
+
+    return 'Otros';
   }
 }
