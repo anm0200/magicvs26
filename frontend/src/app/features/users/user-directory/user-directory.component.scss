@@ -50,6 +50,19 @@
     }
   }
 
+  &.is-pending {
+    background: rgba(245, 158, 11, 0.1); // amber-500/10
+    color: #fbbf24; // amber-400
+    border-color: rgba(245, 158, 11, 0.3);
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.1);
+
+    &:hover {
+      background: rgba(245, 158, 11, 0.2);
+      border-color: rgba(245, 158, 11, 0.5);
+      transform: translateY(-2px);
+    }
+  }
+
   &.disabled-btn {
     opacity: 0.5;
     filter: grayscale(1);

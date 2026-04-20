@@ -5,6 +5,8 @@ import { UserService } from '../../../core/services/user.service';
 import { PublicUser } from '../../../models/user.model';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { ToastService } from '../../../core/services/toast.service';
+import { FriendshipService } from '../../../core/services/friendship.service';
+import { ConfirmService } from '../../../core/services/confirm.service';
 
 @Component({
   selector: 'app-user-directory',
@@ -16,6 +18,8 @@ import { ToastService } from '../../../core/services/toast.service';
 export class UserDirectoryComponent implements OnInit {
   private userService = inject(UserService);
   private toastService = inject(ToastService);
+  private friendshipService = inject(FriendshipService);
+  private confirmService = inject(ConfirmService);
 
   users = signal<PublicUser[]>([]);
   isLoading = signal(true);
@@ -27,8 +31,7 @@ export class UserDirectoryComponent implements OnInit {
   sortBy = signal<'username' | 'elo'>('elo');
   sortOrder = signal<'asc' | 'desc'>('desc');
   
-  // Mock Friendship state (Visual only)
-  followedUsers = signal<Set<number>>(new Set());
+  // No longer using mock followedUsers set
 
   filteredUsers = computed(() => {
     let list = [...this.users()];
@@ -114,24 +117,52 @@ export class UserDirectoryComponent implements OnInit {
     this.sortBy.set(select.value as 'username' | 'elo');
   }
 
-  toggleFollow(userId: number): void {
+  toggleFriendship(user: PublicUser): void {
     if (!this.currentUserId()) {
-      this.toastService.show('Debes iniciar sesión para seguir a otros invocadores', 'info');
+      this.toastService.show('Debes iniciar sesión para interactuar con otros invocadores', 'info');
       return;
     }
-    
-    this.followedUsers.update(set => {
-      const newSet = new Set(set);
-      if (newSet.has(userId)) {
-        newSet.delete(userId);
-      } else {
-        newSet.add(userId);
-      }
-      return newSet;
-    });
+    if (user.id === this.currentUserId()) return;
+
+    const status = user.friendshipStatus || 'NONE';
+
+    if (status === 'NONE') {
+      this.friendshipService.sendRequest(user.id).subscribe({
+        next: () => {
+          this.updateUserStatus(user.id, 'PENDING');
+          this.toastService.show('Solicitud de amistad enviada', 'success');
+        },
+        error: () => this.toastService.show('Error al enviar solicitud', 'error')
+      });
+    } else if (status === 'PENDING') {
+      this.friendshipService.cancelRequest(user.id).subscribe({
+        next: () => {
+          this.updateUserStatus(user.id, 'NONE');
+          this.toastService.show('Solicitud cancelada', 'info');
+        },
+        error: () => this.toastService.show('Error al cancelar solicitud', 'error')
+      });
+    } else if (status === 'ACCEPTED') {
+      this.confirmService.confirm('¿Estás seguro de que quieres dejar de ser amigos?').then(confirmed => {
+        if (confirmed) {
+          this.friendshipService.removeFriend(user.id).subscribe({
+            next: () => {
+              this.updateUserStatus(user.id, 'NONE');
+              this.toastService.show('Amistad eliminada', 'info');
+            },
+            error: () => this.toastService.show('Error al eliminar amigo', 'error')
+          });
+        }
+      });
+    }
+  }
+
+  private updateUserStatus(userId: number, status: 'NONE' | 'PENDING' | 'ACCEPTED'): void {
+    this.users.update(users => users.map(u => u.id === userId ? { ...u, friendshipStatus: status } : u));
   }
 
   isFollowing(userId: number): boolean {
-    return this.followedUsers().has(userId);
+    const user = this.users().find(u => u.id === userId);
+    return user?.friendshipStatus === 'ACCEPTED';
   }
 }

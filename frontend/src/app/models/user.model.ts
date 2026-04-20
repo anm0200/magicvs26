@@ -24,4 +24,5 @@ export interface PublicUser {
   }>;
   isOnline?: boolean;
   lastSeenAt?: string | null;
+  friendshipStatus?: 'NONE' | 'PENDING' | 'ACCEPTED';
 }

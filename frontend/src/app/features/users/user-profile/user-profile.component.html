@@ -50,12 +50,17 @@
               @if (user()?.id !== currentUserId()) {
                 <button (click)="toggleFollow(user()!.id)"
                         class="profile-follow-btn px-8 py-3 rounded-2xl text-xs font-headline font-black uppercase tracking-[0.2em] flex items-center gap-3 transition-all duration-300"
-                        [class.following]="isFollowing(user()!.id)">
-                  @if (isFollowing(user()!.id)) {
-                    <span>Siguiendo</span>
-                    <span class="material-symbols-outlined text-sm unfollow-icon">close</span>
+                        [class.following]="friendshipStatus() === 'ACCEPTED'"
+                        [class.pending]="friendshipStatus() === 'PENDING'">
+                  @if (friendshipStatus() === 'ACCEPTED') {
+                    <span>Amigos</span>
+                    <span class="material-symbols-outlined text-sm unfollow-icon">person_remove</span>
+                  } @else if (friendshipStatus() === 'PENDING') {
+                    <span>Solicitud Pendiente</span>
+                    <span class="material-symbols-outlined text-sm">hourglass_empty</span>
                   } @else {
-                    Seguir Invocador
+                    <span>Enviar solicitud de amistad</span>
+                    <span class="material-symbols-outlined text-sm">person_add</span>
                   }
                 </button>
               }

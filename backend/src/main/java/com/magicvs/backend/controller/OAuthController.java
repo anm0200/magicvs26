@@ -85,7 +85,8 @@ public class OAuthController {
                 "email", info.getEmail(),
                 "username", generatedUsername,
                 "displayName", info.getName(),
-                "googleId", info.getGoogleId()
+                "googleId", info.getGoogleId(),
+                "picture", info.getPicture() != null ? info.getPicture() : ""
         ));
     }
 

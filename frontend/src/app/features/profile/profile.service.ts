@@ -20,6 +20,8 @@ export interface ProfileResponse {
   createdAt?: string | null;
   isOnline?: boolean | null;
   lastSeenAt?: string | null;
+  manualRegistration?: boolean;
+  googleLinked?: boolean;
 }
 
 export interface ProfileDeckSummary {

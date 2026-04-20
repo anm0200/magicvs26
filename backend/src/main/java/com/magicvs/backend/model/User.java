@@ -63,6 +63,9 @@ public class User {
     @Column(name = "google_id", unique = true, length = 255)
     private String googleId;
 
+    @Column(name = "manual_registration")
+    private Boolean manualRegistration = true;
+
     @Column(name = "is_online")
     private Boolean isOnline = false;
 
@@ -238,6 +241,14 @@ public class User {
 
     public void setGoogleId(String googleId) {
         this.googleId = googleId;
+    }
+
+    public Boolean getManualRegistration() {
+        return manualRegistration;
+    }
+
+    public void setManualRegistration(Boolean manualRegistration) {
+        this.manualRegistration = manualRegistration;
     }
 
     public Boolean getIsOnline() {

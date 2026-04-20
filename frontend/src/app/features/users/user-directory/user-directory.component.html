@@ -100,16 +100,18 @@
             </div>
             
             <div class="flex items-center gap-2">
-              <!-- Add Friend / Follow Button (Visual only) -->
               @if (user.id !== currentUserId()) {
-                <button (click)="toggleFollow(user.id); $event.stopPropagation()"
-                        class="flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 active:scale-75 follow-btn shadow-lg"
-                        [class.is-following]="isFollowing(user.id)"
-                        [class.disabled-btn]="!currentUserId()"
+                <button (click)="toggleFriendship(user); $event.stopPropagation()"
                         class="flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 active:scale-75 follow-btn shadow-lg has-tooltip"
-                        [attr.data-tooltip]="!currentUserId() ? 'Debes registrarte o loguearte para poder seguir' : (isFollowing(user.id) ? 'Dejar de seguir' : 'Agregar amigo')">
+                        [class.is-following]="user.friendshipStatus === 'ACCEPTED'"
+                        [class.is-pending]="user.friendshipStatus === 'PENDING'"
+                        [class.disabled-btn]="!currentUserId()"
+                        [attr.data-tooltip]="!currentUserId() ? 'Debes registrarte o loguearte' : 
+                                           (user.friendshipStatus === 'ACCEPTED' ? 'Eliminar amigo' : 
+                                           (user.friendshipStatus === 'PENDING' ? 'Cancelar solicitud' : 'Enviar solicitud'))">
                   <span class="material-symbols-outlined text-[20px]">
-                    {{ isFollowing(user.id) ? 'person_remove' : 'person_add' }}
+                    {{ user.friendshipStatus === 'ACCEPTED' ? 'person_remove' : 
+                       (user.friendshipStatus === 'PENDING' ? 'hourglass_empty' : 'person_add') }}
                   </span>
                 </button>
               }

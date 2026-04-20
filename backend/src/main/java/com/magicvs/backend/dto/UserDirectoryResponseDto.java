@@ -12,10 +12,11 @@ public class UserDirectoryResponseDto {
     private String avatarUrl;
     private boolean isOnline;
     private LocalDateTime lastSeenAt;
+    private String friendshipStatus;
 
     public UserDirectoryResponseDto() {}
 
-    public UserDirectoryResponseDto(Long id, String username, String displayName, Integer elo, String avatarUrl, boolean isOnline, LocalDateTime lastSeenAt) {
+    public UserDirectoryResponseDto(Long id, String username, String displayName, Integer elo, String avatarUrl, boolean isOnline, LocalDateTime lastSeenAt, String friendshipStatus) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
@@ -23,6 +24,7 @@ public class UserDirectoryResponseDto {
         this.avatarUrl = avatarUrl;
         this.isOnline = isOnline;
         this.lastSeenAt = lastSeenAt;
+        this.friendshipStatus = friendshipStatus;
     }
 
     public static UserDirectoryResponseDto fromEntity(User user) {
@@ -33,7 +35,8 @@ public class UserDirectoryResponseDto {
             user.getEloRating(),
             user.getAvatarUrl(),
             Boolean.TRUE.equals(user.getIsOnline()),
-            user.getLastSeenAt()
+            user.getLastSeenAt(),
+            "NONE"
         );
     }
 
@@ -57,4 +60,7 @@ public class UserDirectoryResponseDto {
 
     public LocalDateTime getLastSeenAt() { return lastSeenAt; }
     public void setLastSeenAt(LocalDateTime lastSeenAt) { this.lastSeenAt = lastSeenAt; }
+
+    public String getFriendshipStatus() { return friendshipStatus; }
+    public void setFriendshipStatus(String friendshipStatus) { this.friendshipStatus = friendshipStatus; }
 }

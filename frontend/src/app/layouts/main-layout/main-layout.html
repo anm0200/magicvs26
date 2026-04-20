@@ -186,6 +186,19 @@
                   <div class="flex-1 min-w-0">
                     <p class="text-sm font-semibold text-zinc-100 truncate">{{ notificationTitle(notification) }}</p>
                     <p class="text-xs text-zinc-400 mt-1 line-clamp-2">{{ notificationMessage(notification) }}</p>
+                    
+                    @if (notification.type === 'FRIEND_REQUEST') {
+                      <div class="mt-3 flex items-center gap-2" (click)="$event.stopPropagation()">
+                        <button (click)="acceptFriendRequest(notification)" 
+                          class="px-4 py-1.5 rounded-lg bg-purple-600 text-[10px] font-black uppercase tracking-wider text-white hover:bg-purple-500 transition-all active:scale-95">
+                          Aceptar
+                        </button>
+                        <button (click)="rejectFriendRequest(notification)" 
+                          class="px-4 py-1.5 rounded-lg bg-zinc-800 border border-white/10 text-[10px] font-black uppercase tracking-wider text-zinc-400 hover:bg-zinc-700 hover:text-white transition-all active:scale-95">
+                          Rechazar
+                        </button>
+                      </div>
+                    }
                   </div>
                   @if (notification.unread) {
                     <span class="mt-1 h-2.5 w-2.5 rounded-full bg-rose-400 shadow-[0_0_12px_rgba(251,113,133,0.8)]"></span>
@@ -251,3 +264,4 @@
 </footer>
 
 <app-toast></app-toast>
+<app-confirm-dialog></app-confirm-dialog>

@@ -11,7 +11,9 @@ export class UserService {
   private apiUrl = 'http://localhost:8080/api/users';
 
   getUsers(): Observable<PublicUser[]> {
-    return this.http.get<PublicUser[]>(this.apiUrl);
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+    return this.http.get<PublicUser[]>(this.apiUrl, { headers });
   }
 
   logout(token: string): Observable<void> {

@@ -145,7 +145,9 @@ public class UserProfileService {
                 user.getEmail(),
                 user.getCreatedAt(),
                 user.getIsOnline(),
-                user.getLastSeenAt()
+                user.getLastSeenAt(),
+                user.getManualRegistration(),
+                user.getGoogleId() != null
         );
     }
 

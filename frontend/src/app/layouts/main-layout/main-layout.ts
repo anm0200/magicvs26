@@ -6,6 +6,9 @@ import { NotificationService } from '../../core/services/notification.service';
 import { AppNotification, ToastNotification } from '../../models/notification.model';
 import { ToastComponent } from '../../shared/components/toast/toast.component';
 import { UserService } from '../../core/services/user.service';
+import { FriendshipService } from '../../core/services/friendship.service';
+import { ToastService } from '../../core/services/toast.service';
+import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 
 interface StoredUser {
   id: number;
@@ -20,7 +23,7 @@ interface StoredUser {
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, ConfirmDialogComponent],
   templateUrl: './main-layout.html',
   styleUrl: './main-layout.scss',
 })
@@ -43,6 +46,8 @@ export class MainLayout {
   private readonly profileService = inject(ProfileService);
   private readonly notificationService = inject(NotificationService);
   private readonly userService = inject(UserService);
+  private readonly friendshipService = inject(FriendshipService);
+  private readonly toastService = inject(ToastService);
 
   constructor(private router: Router) {
     this.isLoggedIn = !!localStorage.getItem('user');
@@ -122,6 +127,32 @@ export class MainLayout {
   deleteNotification(event: MouseEvent, notificationId: number): void {
     event.stopPropagation();
     this.notificationService.deleteNotification(notificationId);
+  }
+
+  acceptFriendRequest(notification: AppNotification): void {
+    const senderId = notification.data?.['senderId'];
+    if (!senderId) return;
+
+    this.friendshipService.acceptRequest(Number(senderId)).subscribe({
+      next: () => {
+        this.toastService.show('¡Ahora sois amigos!', 'success');
+        this.notificationService.deleteNotification(notification.id);
+      },
+      error: () => this.toastService.show('Error al aceptar solicitud', 'error')
+    });
+  }
+
+  rejectFriendRequest(notification: AppNotification): void {
+    const senderId = notification.data?.['senderId'];
+    if (!senderId) return;
+
+    this.friendshipService.rejectRequest(Number(senderId)).subscribe({
+      next: () => {
+        this.toastService.show('Solicitud rechazada', 'info');
+        this.notificationService.deleteNotification(notification.id);
+      },
+      error: () => this.toastService.show('Error al rechazar solicitud', 'error')
+    });
   }
 
   dismissToast(toastId: number): void {
