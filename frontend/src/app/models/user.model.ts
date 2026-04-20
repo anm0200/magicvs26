@@ -21,4 +21,6 @@ export interface PublicUser {
     colors: string[];
     imageUrl: string | null;
   }>;
+  isOnline?: boolean;
+  lastSeenAt?: string | null;
 }
