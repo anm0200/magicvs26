@@ -269,7 +269,7 @@ export class CatalogComponent implements OnInit, OnDestroy {
         console.log('Mostrando vista previa para:', card.name);
         this.showHoverPreview.set(true);
       }
-    }, 500); 
+    }, 1000);
   }
 
   onMouseLeave(): void {
