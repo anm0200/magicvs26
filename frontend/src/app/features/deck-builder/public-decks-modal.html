@@ -37,26 +37,55 @@
           class="w-full rounded-xl border border-outline-variant bg-surface/80 py-2.5 pl-9 pr-4 text-sm text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/30"
         />
       </div>
-      <!-- Quick-filter chips -->
-      <div class="mt-2 flex flex-wrap gap-1.5">
-        <button (click)="onSearchChange('poco maná')"
-          class="rounded-full border border-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-300 transition hover:opacity-80">
-          Poco maná (aggro)
-        </button>
-        <button (click)="onSearchChange('midrange')"
-          class="rounded-full border border-amber-400 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-medium text-amber-300 transition hover:opacity-80">
-          Midrange
-        </button>
-        <button (click)="onSearchChange('mucho maná')"
-          class="rounded-full border border-rose-400 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-medium text-rose-300 transition hover:opacity-80">
-          Mucho maná (control)
-        </button>
-        @if (searchQuery()) {
-          <button (click)="onSearchChange('')"
-            class="rounded-full border border-outline-variant/50 px-2.5 py-0.5 text-[10px] text-on-surface/50 transition hover:text-on-surface">
-            ✕ limpiar
+      <!-- Color filter + mana keyword chips -->
+      <div class="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+
+        <!-- Color buttons (identical style to /cartas) -->
+        <div class="flex items-center gap-1.5">
+          @for (color of manaColors; track color) {
+            <button
+              (click)="toggleColor(color)"
+              [title]="getManaTitle(color)"
+              class="flex h-8 w-8 items-center justify-center rounded-full border transition-all"
+              [class]="activeColors().includes(color)
+                ? 'border-primary bg-primary/10 shadow-[0_0_12px_rgba(142,68,173,0.3)] ' + getManaActiveClass(color)
+                : 'border-outline-variant bg-white/5 hover:border-on-surface/60'"
+            >
+              <span class="font-headline text-xs font-bold transition-transform hover:scale-110"
+                [class.text-primary]="activeColors().includes(color)">{{ color }}</span>
+            </button>
+          }
+          @if (activeColors().length > 0) {
+            <button (click)="clearColors()"
+              class="ml-1 rounded-full border border-outline-variant/50 px-2 py-0.5 text-[10px] text-on-surface/50 transition hover:text-on-surface">
+              ✕
+            </button>
+          }
+        </div>
+
+        <div class="h-4 w-px bg-outline-variant/50 hidden sm:block"></div>
+
+        <!-- Mana curve quick-filters -->
+        <div class="flex flex-wrap gap-1.5">
+          <button (click)="onSearchChange('poco maná')"
+            class="rounded-full border border-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-medium text-emerald-300 transition hover:opacity-80">
+            Poco maná
           </button>
-        }
+          <button (click)="onSearchChange('midrange')"
+            class="rounded-full border border-amber-400 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-medium text-amber-300 transition hover:opacity-80">
+            Midrange
+          </button>
+          <button (click)="onSearchChange('mucho maná')"
+            class="rounded-full border border-rose-400 bg-rose-500/10 px-2.5 py-0.5 text-[10px] font-medium text-rose-300 transition hover:opacity-80">
+            Mucho maná
+          </button>
+          @if (searchQuery()) {
+            <button (click)="onSearchChange('')"
+              class="rounded-full border border-outline-variant/50 px-2.5 py-0.5 text-[10px] text-on-surface/50 transition hover:text-on-surface">
+              ✕ Quitar filtro de cantidad de maná
+            </button>
+          }
+        </div>
       </div>
     </div>
 
@@ -110,6 +139,15 @@
                           {{ getManaLabel(deck.averageCmc) }} maná
                         </span>
                       </div>
+                      <!-- Color identity pips -->
+                      @if (deck.colorIdentity.length > 0) {
+                        <div class="mt-1.5 flex gap-0.5">
+                          @for (c of deck.colorIdentity; track c) {
+                            <span class="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold"
+                              [ngClass]="getManaPipClass(c)">{{ c }}</span>
+                          }
+                        </div>
+                      }
                     </div>
                   </div>
                   <!-- subtle "click to preview" hint when not selected -->
@@ -150,8 +188,13 @@
                     {{ selectedDeck()!.totalCards }} cartas
                   </span>
                   <span class="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold" [ngClass]="getManaClass(selectedDeck()!.averageCmc)">
-                    {{ manaCurveLabel() }} · CMC medio {{ selectedDeck()!.averageCmc | number:'1.1-1' }}
+                    {{ manaCurveLabel() }} · CMC {{ selectedDeck()!.averageCmc | number:'1.1-1' }}
                   </span>
+                  <!-- Color identity pips (larger, in preview header) -->
+                  @for (c of selectedDeck()!.colorIdentity; track c) {
+                    <span class="flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold"
+                      [ngClass]="getManaPipClass(c)" [title]="getManaTitle(c)">{{ c }}</span>
+                  }
                 </div>
               </div>
 

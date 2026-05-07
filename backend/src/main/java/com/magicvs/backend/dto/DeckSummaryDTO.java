@@ -99,4 +99,14 @@ public class DeckSummaryDTO {
     public void setAverageCmc(Double averageCmc) {
         this.averageCmc = averageCmc;
     }
+
+    private List<String> colorIdentity;
+
+    public List<String> getColorIdentity() {
+        return colorIdentity;
+    }
+
+    public void setColorIdentity(List<String> colorIdentity) {
+        this.colorIdentity = colorIdentity;
+    }
 }

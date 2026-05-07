@@ -3,6 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DeckBuilderService } from '../../core/services/deck-builder.service';
 
+function sortDecksAlpha(a: { name: string; averageCmc: number }, b: { name: string; averageCmc: number }): number {
+  const nameCompare = a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+  return nameCompare !== 0 ? nameCompare : (a.averageCmc || 0) - (b.averageCmc || 0);
+}
+
 interface PublicDeck {
   id: number;
   name: string;
@@ -13,6 +18,7 @@ interface PublicDeck {
   mainImageUrl: string | null;
   cardNames: string[];
   averageCmc: number;
+  colorIdentity: string[];
 }
 
 interface PreviewCard {
@@ -55,6 +61,7 @@ export class PublicDecksModalComponent implements OnInit {
   searchQuery = signal('');
   copyingId = signal<number | null>(null);
   copiedIds = signal<Set<number>>(new Set());
+  activeColors = signal<string[]>([]);
 
   selectedDeck = signal<PublicDeck | null>(null);
   previewData = signal<PreviewDeck | null>(null);
@@ -66,13 +73,21 @@ export class PublicDecksModalComponent implements OnInit {
 
   readonly filteredDecks = computed(() => {
     const q = this.searchQuery().toLowerCase().trim();
-    if (!q) return this.decks();
+    const colors = this.activeColors();
 
-    const isLow  = PublicDecksModalComponent.LOW_MANA_KEYWORDS.some(k => q.includes(k));
-    const isHigh = PublicDecksModalComponent.HIGH_MANA_KEYWORDS.some(k => q.includes(k));
-    const isMid  = PublicDecksModalComponent.MID_MANA_KEYWORDS.some(k => q.includes(k));
+    const isLow  = !!q && PublicDecksModalComponent.LOW_MANA_KEYWORDS.some(k => q.includes(k));
+    const isHigh = !!q && PublicDecksModalComponent.HIGH_MANA_KEYWORDS.some(k => q.includes(k));
+    const isMid  = !!q && PublicDecksModalComponent.MID_MANA_KEYWORDS.some(k => q.includes(k));
 
     return this.decks().filter(deck => {
+      // Color filter: colorless decks always shown; otherwise all selected colors must be present (AND)
+      if (colors.length > 0) {
+        const deckColors = deck.colorIdentity ?? [];
+        if (deckColors.length > 0 && !colors.every(c => deckColors.includes(c))) return false;
+      }
+
+      if (!q) return true;
+
       const cmc = deck.averageCmc ?? 0;
       if (isLow)  return cmc <= 2.0;
       if (isHigh) return cmc >= 3.5;
@@ -81,7 +96,7 @@ export class PublicDecksModalComponent implements OnInit {
       const matchesName = deck.name.toLowerCase().includes(q);
       const matchesCard = (deck.cardNames ?? []).some(cn => cn.toLowerCase().includes(q));
       return matchesName || matchesCard;
-    });
+    }).sort(sortDecksAlpha);
   });
 
   readonly manaCurveLabel = computed(() => {
@@ -110,7 +125,7 @@ export class PublicDecksModalComponent implements OnInit {
   ngOnInit(): void {
     this.deckService.getPublicDecks().subscribe({
       next: (data: PublicDeck[]) => {
-        this.decks.set(data);
+        this.decks.set([...data].sort(sortDecksAlpha));
         this.loading.set(false);
       },
       error: () => {
@@ -118,6 +133,53 @@ export class PublicDecksModalComponent implements OnInit {
         this.loading.set(false);
       }
     });
+  }
+
+
+  readonly manaColors = ['W', 'U', 'B', 'R', 'G'] as const;
+
+  private static readonly MANA_LABEL: Record<string, string> = {
+    W: 'Blanco', U: 'Azul', B: 'Negro', R: 'Rojo', G: 'Verde'
+  };
+
+  private static readonly MANA_ACTIVE_CLASS: Record<string, string> = {
+    W: 'border-amber-300 bg-amber-300/15 text-amber-200 shadow-[0_0_10px_rgba(251,191,36,0.3)]',
+    U: 'border-sky-400 bg-sky-400/15 text-sky-200 shadow-[0_0_10px_rgba(56,189,248,0.3)]',
+    B: 'border-violet-400 bg-violet-400/15 text-violet-200 shadow-[0_0_10px_rgba(167,139,250,0.3)]',
+    R: 'border-rose-400 bg-rose-400/15 text-rose-200 shadow-[0_0_10px_rgba(251,113,133,0.3)]',
+    G: 'border-emerald-400 bg-emerald-400/15 text-emerald-200 shadow-[0_0_10px_rgba(52,211,153,0.3)]',
+    C: 'border-slate-400 bg-slate-400/15 text-slate-200 shadow-[0_0_10px_rgba(148,163,184,0.3)]',
+  };
+
+  private static readonly MANA_PIP_CLASS: Record<string, string> = {
+    W: 'bg-amber-300/80 text-amber-900',
+    U: 'bg-sky-400/80 text-sky-900',
+    B: 'bg-violet-400/80 text-white',
+    R: 'bg-rose-400/80 text-white',
+    G: 'bg-emerald-400/80 text-emerald-900',
+    C: 'bg-slate-400/80 text-white',
+  };
+
+  getManaActiveClass(color: string): string {
+    return PublicDecksModalComponent.MANA_ACTIVE_CLASS[color] ?? '';
+  }
+
+  getManaPipClass(color: string): string {
+    return PublicDecksModalComponent.MANA_PIP_CLASS[color] ?? '';
+  }
+
+  getManaTitle(color: string): string {
+    return PublicDecksModalComponent.MANA_LABEL[color] ?? color;
+  }
+
+  toggleColor(color: string): void {
+    this.activeColors.update(current =>
+      current.includes(color) ? current.filter(c => c !== color) : [...current, color]
+    );
+  }
+
+  clearColors(): void {
+    this.activeColors.set([]);
   }
 
   onSearchChange(value: string): void {

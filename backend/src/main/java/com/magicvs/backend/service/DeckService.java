@@ -367,7 +367,15 @@ public DeckResponseDTO copyDeck(Long deckId, String authorization) {
 
         if (deck.getCards() != null && !deck.getCards().isEmpty()) {
             List<String> cardNames = deck.getCards().stream()
-                .map(dc -> dc.getCard().getName())
+                .flatMap(dc -> {
+                    List<String> names = new ArrayList<>();
+                    names.add(dc.getCard().getName());
+                    String printed = extractPrintedName(dc.getCard().getRawJson());
+                    if (printed != null && !printed.isBlank() && !printed.equals(dc.getCard().getName())) {
+                        names.add(printed);
+                    }
+                    return names.stream();
+                })
                 .collect(Collectors.toList());
             dto.setCardNames(cardNames);
 
@@ -397,7 +405,33 @@ public DeckResponseDTO copyDeck(Long deckId, String authorization) {
             dto.setAverageCmc(0.0);
         }
 
+        dto.setColorIdentity(buildColorIdentity(deck));
         return dto;
+    }
+
+    private static final Pattern PRINTED_NAME_PATTERN = Pattern.compile("\"printed_name\"\\s*:\\s*\"([^\"]+)\"");
+
+    private String extractPrintedName(String rawJson) {
+        if (rawJson == null || rawJson.isBlank()) return null;
+        Matcher m = PRINTED_NAME_PATTERN.matcher(rawJson);
+        return m.find() ? m.group(1) : null;
+    }
+
+    private static final List<String> WUBRG_ORDER = java.util.Arrays.asList("W", "U", "B", "R", "G");
+
+    private List<String> buildColorIdentity(Deck deck) {
+        if (deck.getCards() == null || deck.getCards().isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        java.util.Set<String> colors = new java.util.HashSet<>();
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("\"([WUBRG])\"");
+        for (com.magicvs.backend.model.DeckCard dc : deck.getCards()) {
+            String json = dc.getCard().getColorIdentityJson();
+            if (json == null || json.isBlank()) continue;
+            java.util.regex.Matcher m = pattern.matcher(json);
+            while (m.find()) colors.add(m.group(1));
+        }
+        return WUBRG_ORDER.stream().filter(colors::contains).collect(Collectors.toList());
     }
 
     private String getBestArtCrop(Deck deck) {
