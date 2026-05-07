@@ -151,14 +151,29 @@ export class PublicDecksModalComponent implements OnInit {
     C: 'border-slate-400 bg-slate-400/15 text-slate-200 shadow-[0_0_10px_rgba(148,163,184,0.3)]',
   };
 
-  private static readonly MANA_PIP_CLASS: Record<string, string> = {
-    W: 'bg-amber-300/80 text-amber-900',
-    U: 'bg-sky-400/80 text-sky-900',
-    B: 'bg-violet-400/80 text-white',
-    R: 'bg-rose-400/80 text-white',
-    G: 'bg-emerald-400/80 text-emerald-900',
-    C: 'bg-slate-400/80 text-white',
+  private static readonly MANA_BUTTON_BASE: Record<string, string> = {
+    W: 'bg-slate-100 border-slate-300',
+    U: 'bg-blue-600 border-blue-500',
+    B: 'bg-neutral-900 border-neutral-700',
+    R: 'bg-red-600 border-red-500',
+    G: 'bg-emerald-600 border-emerald-500',
   };
+
+  private static readonly MANA_PIP_CLASS: Record<string, string> = {
+    W: 'bg-slate-100 border-slate-300',
+    U: 'bg-blue-600 border-blue-500',
+    B: 'bg-neutral-900 border-neutral-700',
+    R: 'bg-red-600 border-red-500',
+    G: 'bg-emerald-600 border-emerald-500',
+    C: 'bg-slate-400 border-slate-500',
+  };
+
+  getManaButtonClass(color: string): string {
+    const base = PublicDecksModalComponent.MANA_BUTTON_BASE[color] ?? 'bg-surface-container border-outline-variant';
+    return this.activeColors().includes(color)
+      ? `${base} scale-125 opacity-100 shadow-md`
+      : `${base} opacity-40 hover:opacity-85`;
+  }
 
   getManaActiveClass(color: string): string {
     return PublicDecksModalComponent.MANA_ACTIVE_CLASS[color] ?? '';
