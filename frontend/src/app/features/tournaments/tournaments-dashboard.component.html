@@ -1,0 +1,236 @@
+<section
+  class="arena-root relative h-screen overflow-hidden bg-[#060e20] font-body text-on-surface"
+  [style.--arena-accent]="activeArenaAccent()"
+>
+  <div class="arena-bg pointer-events-none absolute inset-0"></div>
+
+  <div
+    class="arena-shell relative z-10 grid h-full gap-4 px-4 pb-4 pt-24 lg:px-5 lg:pb-5"
+    [class.command-collapsed]="commandPanelCollapsed()"
+    [class.context-collapsed]="contextPanelCollapsed()"
+  >
+    <aside class="glass-hud command-panel min-h-0 rounded-2xl p-4 shadow-[0_24px_60px_rgba(5,9,18,.42)]">
+      <div class="flex items-center justify-between">
+        <p class="hud-kicker" [class.sr-only]="commandPanelCollapsed()">Command</p>
+        <button class="hud-icon" type="button" (click)="toggleCommandPanel()" aria-label="Alternar panel de comandos">
+          <span class="material-symbols-outlined text-base">
+            {{ commandPanelCollapsed() ? 'left_panel_open' : 'left_panel_close' }}
+          </span>
+        </button>
+      </div>
+
+      @if (!commandPanelCollapsed()) {
+        <h1 class="mt-5 font-lore text-5xl italic leading-none text-white">Arena de Torneos</h1>
+        <p class="mt-3 text-sm leading-6 text-on-surface/68">
+          Inscripciones, rondas activas y brackets convergen en un único plano táctico.
+        </p>
+
+        <form class="mt-7 space-y-3" (submit)="$event.preventDefault(); createTournament()">
+          <input
+            class="hud-input"
+            [value]="createName()"
+            (input)="createName.set(($any($event.target)).value)"
+            placeholder="Nombre del torneo"
+          />
+          <input
+            class="hud-input"
+            [value]="createDescription()"
+            (input)="createDescription.set(($any($event.target)).value)"
+            placeholder="Descripción"
+          />
+
+          <div class="grid grid-cols-[1fr_auto] gap-3">
+            <select class="hud-input" [value]="createMaxPlayers()" (change)="setCreateMaxPlayers(($any($event.target)).value)">
+              <option [value]="8">8 jugadores</option>
+              <option [value]="16">16 jugadores</option>
+              <option [value]="32">32 jugadores</option>
+            </select>
+
+            <button
+              type="submit"
+              class="rounded-md bg-gradient-to-br from-primary to-[#8e44ad] px-4 font-body text-xs font-black uppercase tracking-[.18em] text-on-primary shadow-[0_0_28px_rgba(236,178,255,.18)] transition hover:-translate-y-0.5 hover:shadow-[0_0_34px_rgba(236,178,255,.28)] disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="isCreating()"
+            >
+              {{ isCreating() ? 'Sync' : 'Crear' }}
+            </button>
+          </div>
+        </form>
+
+        <nav class="mt-7 grid gap-2" aria-label="Filtro de torneos">
+          <button class="hud-filter" [class.is-active]="activeFilter() === 'PENDING'" type="button" (click)="setFilter('PENDING')">
+            Inscripción
+          </button>
+          <button class="hud-filter" [class.is-active]="activeFilter() === 'ACTIVE'" type="button" (click)="setFilter('ACTIVE')">
+            En curso
+          </button>
+          <button class="hud-filter" [class.is-active]="activeFilter() === 'COMPLETED'" type="button" (click)="setFilter('COMPLETED')">
+            Finalizados
+          </button>
+        </nav>
+      } @else {
+        <div class="mt-8 flex h-[calc(100%-4rem)] flex-col items-center gap-4">
+          <span class="hud-rail-label">Arena</span>
+          <button class="hud-dot is-blue" type="button" (click)="setFilter('PENDING')" aria-label="Ver inscripción"></button>
+          <button class="hud-dot is-purple" type="button" (click)="setFilter('ACTIVE')" aria-label="Ver activos"></button>
+          <button class="hud-dot is-gold" type="button" (click)="setFilter('COMPLETED')" aria-label="Ver finalizados"></button>
+        </div>
+      }
+    </aside>
+
+    <main class="arena-stage relative min-h-0 min-w-0 overflow-hidden rounded-[1.75rem]">
+      <div class="absolute left-5 top-4 z-20 flex flex-wrap items-center gap-3">
+        <span class="rounded-full bg-surface-container/55 px-4 py-2 font-headline text-xs font-bold uppercase tracking-[.22em] text-secondary backdrop-blur-2xl">
+          Live Tournament Grid
+        </span>
+        <span class="font-headline text-xs text-on-surface/52">{{ activeTournaments().length }} activos</span>
+        <span class="font-headline text-xs text-on-surface/52">{{ filterLabel(activeFilter()) }}</span>
+      </div>
+
+      @if (isLoading()) {
+        <div class="grid h-full place-items-center">
+          <div class="rounded-2xl bg-surface-container/50 px-8 py-6 text-center shadow-[0_24px_48px_rgba(5,9,18,.34)] backdrop-blur-2xl">
+            <p class="font-headline text-xs uppercase tracking-[.24em] text-secondary">Sincronizando brackets</p>
+            <p class="mt-3 text-sm text-on-surface/62">Cargando torneos...</p>
+          </div>
+        </div>
+      } @else {
+        <div class="arena-grid h-full overflow-hidden p-5 pt-16">
+          @for (t of visibleTournaments(); track t.id) {
+            <article
+              class="tournament-tile group relative overflow-hidden rounded-2xl bg-surface-container/58 p-5 backdrop-blur-2xl transition duration-300 hover:-translate-y-1"
+              [style.--tile-accent]="tournamentAccent(t)"
+            >
+              <div class="tile-bleed absolute inset-0 opacity-0 transition duration-300 group-hover:opacity-100"></div>
+
+              <div class="relative flex h-full min-h-[13rem] flex-col justify-between">
+                <div>
+                  <div class="flex items-start justify-between gap-4">
+                    <p class="font-headline text-[11px] font-bold uppercase tracking-[.24em] text-secondary/80">
+                      {{ statusLabel(t.status) }}
+                    </p>
+                    <span class="rounded-full bg-[#0b162d]/70 px-3 py-1 font-headline text-[10px] font-bold uppercase tracking-[.18em] text-on-surface/70">
+                      {{ fillPercent(t) }}%
+                    </span>
+                  </div>
+
+                  <h2 class="mt-3 max-w-[14ch] font-lore text-4xl italic leading-[.95] text-white">
+                    {{ t.name }}
+                  </h2>
+                  <p class="mt-3 line-clamp-2 max-w-md text-sm leading-6 text-on-surface/62">{{ t.description }}</p>
+                </div>
+
+                <div class="mt-6">
+                  <div class="mb-3 flex items-end justify-between gap-4">
+                    <span class="font-headline text-3xl font-bold text-white">{{ t.participantCount }}/{{ t.maxPlayers }}</span>
+                    <span class="font-headline text-xs uppercase tracking-[.2em] text-tertiary">{{ tournamentCountdown(t) }}</span>
+                  </div>
+
+                  <div class="h-2 overflow-hidden rounded-full bg-[#0b162d]/80 shadow-[inset_0_0_18px_rgba(0,0,0,.38)]">
+                    <div
+                      class="h-full rounded-full bg-gradient-to-r from-secondary via-primary to-tertiary shadow-[0_0_22px_rgba(146,204,255,.38)]"
+                      [style.width.%]="fillPercent(t)"
+                    ></div>
+                  </div>
+
+                  @if (t.status === 'PENDING') {
+                    <div class="mt-4 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                      <select class="hud-input compact" (change)="setSelectedDeck(t.id, ($any($event.target)).value)">
+                        <option value="">Selecciona mazo</option>
+                        @for (d of decks(); track d.id) {
+                          <option [value]="d.id">{{ d.name }} ({{ d.totalCards }})</option>
+                        }
+                      </select>
+                      <button
+                        class="rounded-lg bg-secondary/16 px-3 font-body text-[11px] font-black uppercase tracking-[.16em] text-secondary shadow-[0_0_18px_rgba(146,204,255,.14)] transition hover:bg-secondary/24 disabled:cursor-not-allowed disabled:opacity-40"
+                        type="button"
+                        [disabled]="isFull(t)"
+                        (click)="joinTournament(t.id)"
+                      >
+                        Unirme
+                      </button>
+                    </div>
+                  }
+
+                  <a class="mt-4 inline-flex items-center gap-2 font-body text-xs font-bold uppercase tracking-[.18em] text-primary transition hover:text-white" [routerLink]="['/tournaments', t.id]">
+                    Abrir bracket
+                    <span class="material-symbols-outlined text-sm">arrow_forward</span>
+                  </a>
+                </div>
+              </div>
+
+              <div class="oracle-tooltip">
+                <p class="font-headline text-xs uppercase tracking-[.2em] text-secondary">Quick Intel</p>
+                <p class="mt-2 text-sm text-white">{{ t.participantCount }} inscritos · bracket automático · single elimination</p>
+              </div>
+            </article>
+          } @empty {
+            <div class="col-span-full grid h-full place-items-center">
+              <div class="max-w-sm rounded-2xl bg-surface-container/50 p-8 text-center shadow-[0_24px_48px_rgba(5,9,18,.34)] backdrop-blur-2xl">
+                <p class="font-lore text-3xl italic text-white">No hay señal</p>
+                <p class="mt-3 text-sm leading-6 text-on-surface/60">No existen torneos en estado {{ filterLabel(activeFilter()).toLowerCase() }} ahora mismo.</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </main>
+
+    <aside class="glass-hud context-panel min-h-0 rounded-2xl p-4 shadow-[0_24px_60px_rgba(5,9,18,.42)]">
+      <div class="flex items-center justify-between">
+        <p class="hud-kicker" [class.sr-only]="contextPanelCollapsed()">Contexto</p>
+        <button class="hud-icon" type="button" (click)="toggleContextPanel()" aria-label="Alternar panel contextual">
+          <span class="material-symbols-outlined text-base">
+            {{ contextPanelCollapsed() ? 'right_panel_open' : 'right_panel_close' }}
+          </span>
+        </button>
+      </div>
+
+      @if (!contextPanelCollapsed()) {
+        <section class="mt-5 rounded-xl bg-surface-container/45 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
+          <p class="font-headline text-xs uppercase tracking-[.2em] text-on-surface/52">Arena Pulse</p>
+          <strong class="mt-2 block font-headline text-4xl text-white">{{ tournaments().length }}</strong>
+          <span class="font-body text-sm text-on-surface/58">torneos indexados</span>
+        </section>
+
+        <div class="mt-4 grid grid-cols-3 gap-2">
+          <div class="rounded-xl bg-surface-container/35 p-3">
+            <p class="font-headline text-xl font-bold text-secondary">{{ arenaPulse().openSeats }}</p>
+            <p class="mt-1 text-[10px] uppercase tracking-[.18em] text-on-surface/45">plazas</p>
+          </div>
+          <div class="rounded-xl bg-surface-container/35 p-3">
+            <p class="font-headline text-xl font-bold text-primary">{{ arenaPulse().filledSeats }}</p>
+            <p class="mt-1 text-[10px] uppercase tracking-[.18em] text-on-surface/45">players</p>
+          </div>
+          <div class="rounded-xl bg-surface-container/35 p-3">
+            <p class="font-headline text-xl font-bold text-tertiary">{{ arenaPulse().live }}</p>
+            <p class="mt-1 text-[10px] uppercase tracking-[.18em] text-on-surface/45">live</p>
+          </div>
+        </div>
+
+        <section class="mt-5 min-h-0 space-y-2 overflow-hidden">
+          <p class="hud-kicker">Mazos listos</p>
+          <div class="no-scrollbar max-h-[42vh] space-y-2 overflow-y-auto pr-1">
+            @for (d of decks(); track d.id) {
+              <button class="group relative w-full rounded-xl bg-surface-container/38 px-3 py-3 text-left transition hover:bg-surface-container-high/72" type="button">
+                <span class="block truncate font-body text-sm font-bold text-white">{{ d.name }}</span>
+                <span class="font-headline text-xs text-on-surface/48">{{ d.totalCards }} cartas</span>
+
+                <span class="oracle-tooltip deck-tooltip left-auto right-full mr-3">
+                  Mazo disponible para inscripción rápida.
+                </span>
+              </button>
+            } @empty {
+              <p class="rounded-xl bg-surface-container/35 p-4 text-sm text-on-surface/56">No hay mazos disponibles para inscribirse.</p>
+            }
+          </div>
+        </section>
+      } @else {
+        <div class="mt-8 flex h-[calc(100%-4rem)] flex-col items-center gap-4">
+          <span class="hud-rail-label">Pulse</span>
+          <span class="font-headline text-xl font-bold text-secondary">{{ tournaments().length }}</span>
+          <span class="font-headline text-xl font-bold text-primary">{{ activeTournaments().length }}</span>
+        </div>
+      }
+    </aside>
+  </div>
+</section>

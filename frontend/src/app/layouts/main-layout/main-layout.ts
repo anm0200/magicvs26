@@ -223,6 +223,11 @@ export class MainLayout {
     return this.notificationService.toasts();
   }
 
+  get isImmersiveRoute(): boolean {
+    const url = this.router.url.split('?')[0];
+    return url === '/tournaments' || url.startsWith('/tournaments/');
+  }
+
   @HostListener('document:click')
   closeNotificationsOnOutsideClick(): void {
     this.notificationService.setDropdownOpen(false);

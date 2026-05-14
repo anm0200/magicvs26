@@ -24,8 +24,8 @@
          routerLink="/decks/create" 
          routerLinkActive="text-purple-400 border-purple-500 font-bold">Mazos</a>
       <a class="text-zinc-400 hover:text-zinc-100 transition-colors tracking-wider uppercase Manrope text-sm pb-1 border-b-2" 
-         routerLink="/combat" 
-         routerLinkActive="text-purple-400 border-purple-500 font-bold">Combate</a>
+         routerLink="/tournaments" 
+         routerLinkActive="text-purple-400 border-purple-500 font-bold">Torneos</a>
     </div>
 
     <!-- RIGHT SIDE -->
@@ -247,6 +247,7 @@
 </main>
 
 <!-- Footer -->
+@if (!isImmersiveRoute) {
 <footer class="bg-zinc-950 border-t border-zinc-800/30 py-8 mt-auto">
   <div class="flex flex-col md:flex-row justify-between items-center px-8 max-w-7xl mx-auto opacity-60">
     <p class="font-light Manrope text-xs tracking-tight text-zinc-500 mb-4 md:mb-0">
@@ -262,6 +263,7 @@
     </div>
   </div>
 </footer>
+}
 
 <app-toast></app-toast>
 <app-confirm-dialog></app-confirm-dialog>
