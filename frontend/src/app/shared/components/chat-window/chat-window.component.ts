@@ -84,7 +84,7 @@ export class ChatWindowComponent {
     this.close();
   }
 
-  openChatWithUserById(userId: number) {
+  private openChatWithUserById(userId: number) {
     this.isOpen.set(true);
     const friend = this.friends().find(f => f.id === userId);
     if (friend) {

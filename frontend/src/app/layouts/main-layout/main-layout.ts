@@ -11,7 +11,6 @@ import { ToastService } from '../../core/services/toast.service';
 import { ArenaService } from '../../core/services/arena.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ChatWindowComponent } from '../../shared/components/chat-window/chat-window.component';
-import { FriendsListComponent } from '../../shared/components/friends-list/friends-list.component';
 import { ChatService } from '../../core/services/chat.service';
 import { ViewChild } from '@angular/core';
 
@@ -28,7 +27,7 @@ interface StoredUser {
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, ConfirmDialogComponent, ChatWindowComponent, FriendsListComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, ConfirmDialogComponent, ChatWindowComponent],
   templateUrl: './main-layout.html',
   styleUrl: './main-layout.scss',
 })
@@ -362,15 +361,5 @@ export class MainLayout {
       .slice(0, 2)
       .map((part) => part.charAt(0).toUpperCase())
       .join('');
-  }
-
-  /**
-   * Manejador para cuando se selecciona un amigo de la lista de amigos.
-   * Abre la ventana de chat con el amigo seleccionado.
-   */
-  onFriendSelected(friend: any): void {
-    if (this.chatWindow) {
-      this.chatWindow.openChatWithUserById(friend.id);
-    }
   }
 }
