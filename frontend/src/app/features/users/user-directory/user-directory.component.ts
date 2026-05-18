@@ -35,11 +35,22 @@ export class UserDirectoryComponent implements OnInit {
 
   filteredUsers = computed(() => {
     let list = [...this.users()];
-    const search = this.searchTerm().toLowerCase().trim();
+    const search = this.searchTerm().trim();
+    const usernameSearch = search.toLowerCase();
+    const friendTagSearch = search.startsWith('#') ? search.slice(1).toUpperCase() : '';
+    const isValidFriendTagSearch = /^#[a-zA-Z0-9]{6}$/.test(search);
 
     // Filter by search term
     if (search) {
-      list = list.filter(u => u.username.toLowerCase().includes(search));
+      list = list.filter(u => {
+        const username = u.username.toLowerCase();
+        const friendTag = (u.friendTag || '').toUpperCase();
+
+        const matchesUsername = username.includes(usernameSearch);
+        const matchesFriendTag = isValidFriendTagSearch && friendTag === friendTagSearch;
+
+        return matchesUsername || matchesFriendTag;
+      });
     }
 
     // Sort users
@@ -66,6 +77,10 @@ export class UserDirectoryComponent implements OnInit {
 
     return list;
   });
+
+  isFriendTagSearch = computed(() => /^#/.test(this.searchTerm().trim()));
+
+  isValidFriendTagSearch = computed(() => /^#[a-zA-Z0-9]{6}$/.test(this.searchTerm().trim()));
 
   ngOnInit(): void {
     this.loadUsers();
