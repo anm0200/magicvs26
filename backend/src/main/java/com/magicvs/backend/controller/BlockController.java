@@ -1,4 +1,5 @@
 package com.magicvs.backend.controller;
+
 import com.magicvs.backend.dto.BlockedUserDTO;
 import com.magicvs.backend.service.AuthService;
 import com.magicvs.backend.service.BlockService;
