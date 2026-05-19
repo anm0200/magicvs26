@@ -25,6 +25,94 @@ export class BattleboardComponent implements OnInit, OnDestroy {
   me: any = null;
   opponent: any = null;
   hoveredCard: any = null;
+  viewingExilePlayer: any = null;
+  viewingGraveyardPlayer: any = null;
+
+  viewExile(player: any): void {
+    this.viewingExilePlayer = player;
+  }
+
+  closeExile(): void {
+    this.viewingExilePlayer = null;
+  }
+
+  viewGraveyard(player: any): void {
+    this.viewingGraveyardPlayer = player;
+  }
+
+  closeGraveyard(): void {
+    this.viewingGraveyardPlayer = null;
+  }
+
+  onPlayCardFromGraveyard(cardId: string): void {
+    this.onClearHover();
+    this.engine.playCardFromGraveyard(cardId);
+    this.closeGraveyard();
+  }
+
+  onCycleCard(cardId: string): void {
+    this.onClearHover();
+    this.engine.cycleCard(cardId);
+  }
+
+  onDiscardCard(cardId: string): void {
+    this.engine.discardCard(cardId);
+  }
+
+  onChooseKicker(payKicker: boolean): void {
+    this.engine.chooseKicker(payKicker);
+  }
+
+  onChooseWard(payWard: boolean): void {
+    this.engine.chooseWard(payWard);
+  }
+
+  scryDestinations: Record<string, 'top' | 'bottom' | 'graveyard'> = {};
+
+  selectScryDestination(cardId: string, dest: 'top' | 'bottom' | 'graveyard'): void {
+    this.scryDestinations[cardId] = dest;
+  }
+
+  getScryDestination(cardId: string, defaultDest: 'top' | 'bottom' | 'graveyard'): 'top' | 'bottom' | 'graveyard' {
+    return this.scryDestinations[cardId] || defaultDest;
+  }
+
+  onConfirmScrySurveil(choice: any): void {
+    const cards = choice.cards || [];
+    const defaultDest = 'top';
+    
+    const topCardIds = cards.filter((c: any) => this.getScryDestination(c.id, defaultDest) === 'top').map((c: any) => c.id);
+    const bottomCardIds = cards.filter((c: any) => this.getScryDestination(c.id, defaultDest) === 'bottom').map((c: any) => c.id);
+    const graveyardCardIds = cards.filter((c: any) => this.getScryDestination(c.id, defaultDest) === 'graveyard').map((c: any) => c.id);
+
+    this.engine.resolveScrySurveil(choice.playerId, topCardIds, bottomCardIds, graveyardCardIds);
+    this.scryDestinations = {};
+  }
+
+  onConfirmCrew(choice: any): void {
+    this.engine.crewVehicle(choice.vehicleId, choice.tappedCreatureIds);
+  }
+
+  onCancelCrew(): void {
+    this.engine.cancelCrewChoice();
+  }
+
+  onSelectGraveyardCard(cardId: string): void {
+    this.engine.resolveGraveyardSelection(cardId);
+    this.closeGraveyard();
+  }
+
+  getPendingCrewSelectedPower(choice: any, fieldCards: any[]): number {
+    if (!choice || !choice.tappedCreatureIds || !fieldCards) return 0;
+    let total = 0;
+    choice.tappedCreatureIds.forEach((id: string) => {
+      const creature = fieldCards.find(c => c.id === id);
+      if (creature) {
+        total += this.engine.getModifiedPower(creature, this.engine.me() || {} as any);
+      }
+    });
+    return total;
+  }
   
   // Animation states
   private prevDamageMap = new Map<string, number>();
@@ -114,8 +202,71 @@ export class BattleboardComponent implements OnInit, OnDestroy {
     this.engine.keepHand();
   }
 
+  activeAttackerId: string | null = null;
+
+  getPotentialAttackTargets(): { id: string; name: string; type: string }[] {
+    const targets: { id: string; name: string; type: string }[] = [];
+    if (!this.gameState) return targets;
+
+    const opp = this.opponent;
+    // 1. Defending player
+    targets.push({ id: opp.id, name: opp.username, type: 'PLAYER' });
+
+    // 2. Opponent Planeswalkers
+    opp.field.forEach((c: any) => {
+      if (c.isPlaneswalker) {
+        targets.push({ id: c.id, name: c.name, type: 'PLANESWALKER' });
+      }
+    });
+
+    // 3. Battles protected by the opponent
+    this.me.field.forEach((c: any) => {
+      if (c.isBattle && c.battleProtectorId === opp.id) {
+        targets.push({ id: c.id, name: c.name, type: 'BATTLE' });
+      }
+    });
+    this.opponent.field.forEach((c: any) => {
+      if (c.isBattle && c.battleProtectorId === opp.id) {
+        targets.push({ id: c.id, name: c.name, type: 'BATTLE' });
+      }
+    });
+
+    return targets;
+  }
+
   onTapCard(cardId: string): void {
+    if (!this.gameState) return;
+    
+    // Check if it is combat phase, and the card clicked belongs to active player (me)
+    const card = this.me.field.find((c: any) => c.id === cardId);
+    if (this.gameState.currentPhase === GamePhase.COMBAT && card && !card.type?.toLowerCase().includes('land')) {
+      if (card.isAttacking) {
+        this.engine.attackWithCard(card);
+        return;
+      }
+      
+      const potentialTargets = this.getPotentialAttackTargets();
+      if (potentialTargets.length > 1) {
+        this.activeAttackerId = cardId;
+        return;
+      }
+    }
+    
     this.engine.tapCard(cardId);
+  }
+
+  onDeclareAttackTarget(targetId: string): void {
+    if (this.activeAttackerId && this.gameState) {
+      const card = this.me.field.find((c: any) => c.id === this.activeAttackerId);
+      if (card) {
+        this.engine.attackWithCard(card, targetId);
+      }
+      this.activeAttackerId = null;
+    }
+  }
+
+  onCancelAttackTarget(): void {
+    this.activeAttackerId = null;
   }
 
   ngOnDestroy(): void {
@@ -253,11 +404,68 @@ export class BattleboardComponent implements OnInit, OnDestroy {
     }, 850);
   }
 
+  onActivatePlaneswalkerAbility(planeswalkerId: string, abilityIndex: number): void {
+    this.engine.activatePlaneswalkerAbility(planeswalkerId, abilityIndex);
+    this.onCancelPlaneswalkerChoice();
+  }
+
+  onCancelPlaneswalkerChoice(): void {
+    if (this.gameState) {
+      this.gameState.pendingPlaneswalkerChoice = undefined;
+    }
+  }
+
   isHitting(cardId: string): boolean {
     return this.hittingCards.has(cardId);
   }
 
   getRecentDamage(cardId: string): number {
     return this.lastDamageTaken.get(cardId) || 0;
+  }
+
+  onResolveAdventureChoice(castAsAdventure: boolean): void {
+    this.engine.resolveAdventureChoice(castAsAdventure);
+  }
+
+  onCancelAdventureChoice(): void {
+    this.engine.cancelAdventureChoice();
+  }
+
+  onResolveBestowChoice(castAsBestow: boolean): void {
+    this.engine.resolveBestowChoice(castAsBestow);
+  }
+
+  onCancelBestowChoice(): void {
+    this.engine.cancelBestowChoice();
+  }
+
+  onResolveMdfcChoice(faceIndex: number): void {
+    this.engine.resolveMdfcChoice(faceIndex);
+  }
+
+  onResolveDiscoverChoice(castFree: boolean): void {
+    this.engine.resolveDiscoverChoice(castFree);
+  }
+
+  onCancelMdfcChoice(): void {
+    this.engine.cancelMdfcChoice();
+  }
+
+  onPlayCardFromExile(cardId: string): void {
+    this.engine.playCardFromExile(cardId);
+  }
+
+  onTransformIncubator(cardId: string): void {
+    this.engine.transformIncubator(cardId);
+  }
+
+  onActivateBoast(cardId: string): void {
+    this.engine.activateBoast(cardId);
+  }
+
+  formatManaCost(cost: any): string {
+    if (!cost) return '';
+    if (Array.isArray(cost)) return cost.join('');
+    return cost;
   }
 }

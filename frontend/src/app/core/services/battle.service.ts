@@ -68,8 +68,10 @@ export class BattleService {
       hand: (p.hand || []).map((c: any) => this.mapCard(c)),
       field: (p.field || []).map((c: any) => this.mapCard(c)),
       graveyard: (p.graveyard || []).map((c: any) => this.mapCard(c)),
+      exile: (p.exile || []).map((c: any) => this.mapCard(c)),
       libraryCount: p.libraryCount ?? p.library?.length ?? 0,
       graveyardCount: p.graveyardCount ?? p.graveyard?.length ?? 0,
+      exileCount: p.exileCount ?? p.exile?.length ?? 0,
       handCount: p.handCount ?? p.hand?.length ?? 0,
       mulliganCount: p.mulliganCount || 0,
       isReady: p.isReady ?? p.ready ?? false,
@@ -94,7 +96,22 @@ export class BattleService {
       damageTaken: c.damageTaken || 0,
       orderedBlockers: c.orderedBlockers,
       producedMana: c.producedMana,
-      enteredFieldTurn: c.enteredFieldTurn ?? -1
+      enteredFieldTurn: c.enteredFieldTurn ?? -1,
+
+      // Propiedades avanzadas
+      isToken: c.isToken ?? false,
+      isDoubleFaced: c.isDoubleFaced ?? false,
+      currentFaceIndex: c.currentFaceIndex ?? 0,
+      imageUrl2: (c as any).imageUrl2 || '',
+      faces: (c as any).faces || [],
+      counters: c.counters || {},
+      attachedToCardId: c.attachedToCardId,
+      attachedCardIds: c.attachedCardIds || [],
+      tempPowerModifier: c.tempPowerModifier ?? 0,
+      tempToughnessModifier: c.tempToughnessModifier ?? 0,
+      crewed: c.crewed ?? false,
+      hasSummoningSickness: c.hasSummoningSickness ?? false,
+      exileOnResolution: c.exileOnResolution ?? false
     };
   }
 }

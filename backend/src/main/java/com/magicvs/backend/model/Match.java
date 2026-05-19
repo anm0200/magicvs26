@@ -24,10 +24,10 @@ public class Match {
     private Long winnerId;
 
     // --- LÓGICA DE ELO ---
-    private int eloBeforeP1;
-    private int eloBeforeP2;
-    private int eloAfterP1;
-    private int eloAfterP2;
+    private Integer eloBeforeP1;
+    private Integer eloBeforeP2;
+    private Integer eloAfterP1;
+    private Integer eloAfterP2;
     private Integer eloChange; // Diferencia neta opcional
 
     // --- ESTADO Y FORMATO ---
@@ -58,8 +58,8 @@ public class Match {
     public Match() {}
 
     public Match(User player1, User player2, Long winnerId,
-                 int eloBeforeP1, int eloBeforeP2,
-                 int eloAfterP1, int eloAfterP2) {
+                 Integer eloBeforeP1, Integer eloBeforeP2,
+                 Integer eloAfterP1, Integer eloAfterP2) {
         this.player1 = player1;
         this.player2 = player2;
         this.winnerId = winnerId;
@@ -91,17 +91,17 @@ public class Match {
     public Long getWinnerId() { return winnerId; }
     public void setWinnerId(Long winnerId) { this.winnerId = winnerId; }
 
-    public int getEloBeforeP1() { return eloBeforeP1; }
-    public void setEloBeforeP1(int eloBeforeP1) { this.eloBeforeP1 = eloBeforeP1; }
+    public Integer getEloBeforeP1() { return eloBeforeP1; }
+    public void setEloBeforeP1(Integer eloBeforeP1) { this.eloBeforeP1 = eloBeforeP1; }
 
-    public int getEloBeforeP2() { return eloBeforeP2; }
-    public void setEloBeforeP2(int eloBeforeP2) { this.eloBeforeP2 = eloBeforeP2; }
+    public Integer getEloBeforeP2() { return eloBeforeP2; }
+    public void setEloBeforeP2(Integer eloBeforeP2) { this.eloBeforeP2 = eloBeforeP2; }
 
-    public int getEloAfterP1() { return eloAfterP1; }
-    public void setEloAfterP1(int eloAfterP1) { this.eloAfterP1 = eloAfterP1; }
+    public Integer getEloAfterP1() { return eloAfterP1; }
+    public void setEloAfterP1(Integer eloAfterP1) { this.eloAfterP1 = eloAfterP1; }
 
-    public int getEloAfterP2() { return eloAfterP2; }
-    public void setEloAfterP2(int eloAfterP2) { this.eloAfterP2 = eloAfterP2; }
+    public Integer getEloAfterP2() { return eloAfterP2; }
+    public void setEloAfterP2(Integer eloAfterP2) { this.eloAfterP2 = eloAfterP2; }
 
     public Integer getEloChange() { return eloChange; }
     public void setEloChange(Integer eloChange) { this.eloChange = eloChange; }

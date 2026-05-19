@@ -157,9 +157,11 @@ public class BattleService {
         pState.setHand(hand);
         pState.setField(new ArrayList<>());
         pState.setGraveyard(new ArrayList<>());
+        pState.setExile(new ArrayList<>());
         pState.setLibraryCount(library.size());
         pState.setHandCount(hand.size());
         pState.setGraveyardCount(0);
+        pState.setExileCount(0);
 
         return pState;
     }
@@ -228,6 +230,19 @@ public class BattleService {
             }
         } catch (Exception e) {}
         cs.setProducedMana(produced);
+        
+        // Inicializar propiedades avanzadas por defecto
+        cs.setIsToken(false);
+        cs.setIsDoubleFaced(card.getLayout() != null && card.getLayout().equals("transform"));
+        cs.setCurrentFaceIndex(0);
+        cs.setCounters(new java.util.HashMap<>());
+        cs.setAttachedToCardId(null);
+        cs.setAttachedCardIds(new ArrayList<>());
+        cs.setTempPowerModifier(0);
+        cs.setTempToughnessModifier(0);
+        cs.setCrewed(false);
+        cs.setHasSummoningSickness(true);
+        cs.setExileOnResolution(false);
         
         return cs;
     }
@@ -451,9 +466,11 @@ public class BattleService {
         private List<CardState> hand;
         private List<CardState> field;
         private List<CardState> graveyard;
+        private List<CardState> exile;
         private int libraryCount;
         private int handCount;
         private int graveyardCount;
+        private int exileCount;
         private int mulliganCount;
         @com.fasterxml.jackson.annotation.JsonProperty("isReady")
         private boolean isReady;
@@ -493,5 +510,18 @@ public class BattleService {
         private int damageTaken;
         private List<String> orderedBlockers;
         private List<String> producedMana;
+
+        // Propiedades avanzadas
+        private Boolean isToken;
+        private Boolean isDoubleFaced;
+        private Integer currentFaceIndex;
+        private java.util.Map<String, Integer> counters;
+        private String attachedToCardId;
+        private List<String> attachedCardIds;
+        private Integer tempPowerModifier;
+        private Integer tempToughnessModifier;
+        private Boolean crewed;
+        private Boolean hasSummoningSickness;
+        private Boolean exileOnResolution;
     }
 }

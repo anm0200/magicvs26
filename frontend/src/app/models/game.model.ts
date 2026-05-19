@@ -24,11 +24,67 @@ export interface GameCard {
   producedMana?: string[];
   oracleText?: string;
   isAttacking?: boolean;
+  attackingTargetId?: string; // ID del jugador o permanente (Planeswalker/Batalla) al que ataca
   isBlocking?: boolean;
   blockingTargetId?: string;
   enteredFieldTurn?: number;
   damageTaken?: number;
   orderedBlockers?: string[];
+
+  // Propiedades avanzadas para mecánicas core
+  isToken?: boolean;
+  isDoubleFaced?: boolean;
+  currentFaceIndex?: number; // 0: Frontal, 1: Posterior
+  imageUrl2?: string;
+  faces?: {
+    name: string;
+    manaCost: string[];
+    type: string;
+    oracleText: string;
+    powerToughness?: string;
+    imageUrl: string;
+  }[];
+  counters?: Record<string, number>; // Ej: { "+1/+1": 2, "charge": 3 }
+  attachedToCardId?: string;
+  attachedCardIds?: string[];
+  tempPowerModifier?: number;
+  tempToughnessModifier?: number;
+  crewed?: boolean;
+  hasSummoningSickness?: boolean;
+  exileOnResolution?: boolean; // Para hechizos lanzados con Flashback/Escape
+  tempUnblockable?: boolean; // Sprint 7
+  loyaltyUsedThisTurn?: boolean; // Caminante de planos
+  battleProtectorId?: string; // ID del oponente que protege la batalla
+  isBattle?: boolean; // Tipo Batalla
+  isPlaneswalker?: boolean; // Tipo Caminante de planos
+  isSaga?: boolean; // Tipo Saga
+  
+  // Adventure
+  isAdventure?: boolean;
+  adventureName?: string;
+  adventureManaCost?: string[];
+  adventureType?: string;
+  adventureOracleText?: string;
+  adventureExiled?: boolean;
+  castAsAdventure?: boolean;
+
+  // Disturb
+  hasDisturb?: boolean;
+  disturbCost?: string[];
+  disturbExileOnLeave?: boolean;
+
+  // MDFC
+  isMdfc?: boolean;
+  mdfcFaceSelected?: number; 
+  hasIncubateTransform?: boolean;
+  canTransform?: boolean;
+
+  // SPRINT 14: Boast & Combat
+  hasAttackedThisTurn?: boolean;
+  boastActivatedThisTurn?: boolean;
+
+  // Bestow (Concesión)
+  castAsBestow?: boolean;
 }
 
 export interface ManaPool {
@@ -49,12 +105,15 @@ export interface PlayerGameState {
   hand: GameCard[];
   field: GameCard[];
   graveyard: GameCard[];
+  exile: GameCard[]; // Zona de Exilio
   libraryCount: number;
   graveyardCount: number;
+  exileCount: number; // Contador de cartas en Exilio
   handCount: number;
   mulliganCount: number;
   isReady: boolean;
   manaPool: ManaPool;
+  poisonCounters?: number; // Contadores de veneno (Sprint 12)
 }
 
 export interface StackItem {
@@ -66,8 +125,9 @@ export interface StackItem {
   card?: GameCard;
   imageUrl?: string;
   targetId?: string;
-  targetType?: 'CREATURE' | 'PLAYER';
+  targetType?: 'CREATURE' | 'PLAYER' | 'SPELL_ON_STACK';
   effect?: any;
+  kicked?: boolean; // Indica si se pagó Estímulo
 }
 
 export interface GameState {
@@ -92,16 +152,97 @@ export interface GameState {
     cardId: string;
     remainingGeneric: number;
     specificPaid: boolean;
+    convokeActive?: boolean;
+    tappedConvokeCreatureIds?: string[];
+  };
+  pendingChannelChoice?: {
+    cardId: string;
+    channelCost: string[];
   };
   pendingTarget?: {
     sourceCardId: string;
-    validTargets: 'CREATURE' | 'PLAYER' | 'ANY';
-    effect: 'DAMAGE' | 'DESTROY' | 'BUFF' | 'DEBUFF' | 'BOUNCE';
+    validTargets: 'CREATURE' | 'PLAYER' | 'ANY' | 'SPELL_ON_STACK';
+    effect: 'DAMAGE' | 'DESTROY' | 'BUFF' | 'DEBUFF' | 'BOUNCE' | 'COUNTER_SPELL' | 'COPY_SPELL';
     value?: number;
+  };
+  pendingKickerChoice?: {
+    cardId: string;
+    kickerCost: string[];
+  };
+  pendingDiscard?: {
+    count: number;
+    triggerTargetId?: string; // Para Connive
+    forConnive?: boolean;
+  };
+  pendingDiscoverChoice?: {
+    playerId: string;
+    cardsRevealed: GameCard[];
+    foundCard: GameCard | null;
+    isCascade: boolean;
+    manaValueLimit: number;
+  };
+  pendingWardChoice?: {
+    targetCardId: string;
+    sourceCardId: string;
+    wardCost: string[];
+    selectedTargetId: string;
+    selectedTargetType: 'CREATURE' | 'PLAYER' | 'SPELL_ON_STACK';
+  };
+  pendingScrySurveilChoice?: {
+    playerId: string;
+    type: 'SCRY' | 'SURVEIL';
+    cards: GameCard[];
+    value: number;
+    sourceCardId: string;
+  };
+  pendingCrewChoice?: {
+    vehicleId: string;
+    requiredPower: number;
+    tappedCreatureIds: string[];
+  };
+  pendingSacrificeChoice?: {
+    playerId: string;
+    count: number;
+    validTypes: 'CREATURE' | 'PERMANENT';
+    sourceCardId?: string;
+  };
+  pendingGraveyardSelection?: {
+    playerId: string;
+    effectType: 'EXILE' | 'RETURN_TO_HAND';
+    sourceCardId?: string;
   };
   pendingBlockerOrders?: {
     attackerId: string;
     blockerIds: string[];
   }[];
+  pendingPlaneswalkerChoice?: {
+    planeswalkerId: string;
+    abilities: string[];
+  };
+  pendingAdventureChoice?: {
+    cardId: string;
+    creatureCost: string[];
+    adventureCost: string[];
+    adventureName: string;
+  };
+  pendingMdfcChoice?: {
+    cardId: string;
+    face0Name: string;
+    face1Name: string;
+    face0Cost: string[];
+    face1Cost: string[];
+    face0Type: string;
+    face1Type: string;
+  };
+  pendingBestowChoice?: {
+    cardId: string;
+    creatureCost: string[];
+    bestowCost: string[];
+    bestowName: string;
+  };
   actionLog?: string[];
+  
+  // Daybound/Nightbound Cycle
+  timeCycle?: 'NONE' | 'DAY' | 'NIGHT';
+  spellsCastThisTurn?: { [playerId: string]: number };
 }
