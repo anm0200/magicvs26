@@ -10,18 +10,20 @@ public class UserDirectoryResponseDto {
     private String displayName;
     private Integer elo;
     private String avatarUrl;
+    private String friendTag;
     private boolean isOnline;
     private LocalDateTime lastSeenAt;
     private String friendshipStatus;
 
     public UserDirectoryResponseDto() {}
 
-    public UserDirectoryResponseDto(Long id, String username, String displayName, Integer elo, String avatarUrl, boolean isOnline, LocalDateTime lastSeenAt, String friendshipStatus) {
+    public UserDirectoryResponseDto(Long id, String username, String displayName, Integer elo, String avatarUrl, String friendTag, boolean isOnline, LocalDateTime lastSeenAt, String friendshipStatus) {
         this.id = id;
         this.username = username;
         this.displayName = displayName;
         this.elo = elo;
         this.avatarUrl = avatarUrl;
+        this.friendTag = friendTag;
         this.isOnline = isOnline;
         this.lastSeenAt = lastSeenAt;
         this.friendshipStatus = friendshipStatus;
@@ -34,6 +36,7 @@ public class UserDirectoryResponseDto {
             user.getDisplayName(),
             user.getElo(),
             user.getAvatarUrl(),
+            user.getFriendTag(),
             Boolean.TRUE.equals(user.getIsOnline()),
             user.getLastSeenAt(),
             "NONE"
@@ -54,6 +57,9 @@ public class UserDirectoryResponseDto {
 
     public String getAvatarUrl() { return avatarUrl; }
     public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+
+    public String getFriendTag() { return friendTag; }
+    public void setFriendTag(String friendTag) { this.friendTag = friendTag; }
 
     public boolean getIsOnline() { return isOnline; }
     public void setIsOnline(boolean isOnline) { this.isOnline = isOnline; }
