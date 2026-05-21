@@ -79,6 +79,23 @@ public class ScryfallService {
     }
 
     /**
+     * Importa o actualiza una carta por su ID de Scryfall.
+     */
+    @Transactional
+    public Card importCardByScryfallId(UUID scryfallId) {
+        String url = SCRYFALL_API_BASE + "/cards/" + scryfallId.toString();
+        try {
+            JsonNode root = restTemplate.getForObject(url, JsonNode.class);
+            if (root != null) {
+                return saveOrUpdateCard(root);
+            }
+        } catch (Exception e) {
+            logger.error("Error al importar carta por Scryfall ID: {}", scryfallId, e);
+        }
+        return null;
+    }
+
+    /**
      * Importa todas las cartas de una expansión específica.
      */
     @Transactional
