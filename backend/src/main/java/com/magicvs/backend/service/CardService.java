@@ -127,7 +127,7 @@ public class CardService {
         return Arrays.asList(colorsJson.replaceAll("[\\[\\]\" ]", "").split(","));
     }
 
-    private String resolveDisplayName(String defaultName, String rawJson) {
+    public String resolveDisplayName(String defaultName, String rawJson) {
         String localized = extractStringFromRawJson(rawJson, "printed_name");
         return (localized != null && !localized.isBlank()) ? localized : defaultName;
     }
