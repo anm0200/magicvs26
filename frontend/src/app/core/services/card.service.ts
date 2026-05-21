@@ -84,6 +84,7 @@ export class CardService {
   private mapSearchCardToCard(card: any): Card {
     return {
       id: String(card.id),
+      scryfallId: card.scryfallId,
       name: card.name || '',
       imageUrl: card.imageUrl || '',
       imageUrl2: card.backImageUrl || '',
@@ -124,8 +125,9 @@ export class CardService {
   private mapBackendCardToCard(card: any): Card {
     return {
       id: String(card.id),
+      scryfallId: card.scryfallId,
       name: card.name || '',
-      imageUrl: card.normalImageUri || card.smallImageUri || card.largeImageUri || card.pngImageUri || '',
+      imageUrl: card.imageUrl || card.normalImageUri || card.smallImageUri || card.largeImageUri || card.pngImageUri || '',
       imageUrl2: card.backImageUri || '',
       manaCost: this.parseManaCost(card.manaCost),
       type: card.typeLine || card.layout || '',
@@ -179,7 +181,12 @@ export class CardService {
 
     return legalities.reduce((result: Card['legalities'], entry: any) => {
       const format = entry.formatName?.toLowerCase();
-      const status = entry.legalityStatus || 'No legal';
+      
+      // Mapeamos lo que viene del backend (ej: "not_legal") a lo que quiere el modelo (ej: "Not Legal")
+      let status: "Legal" | "Banned" | "Not Legal" = 'Not Legal';
+      
+      if (entry.legalityStatus === 'legal' || entry.legalityStatus === 'Legal') status = 'Legal';
+      if (entry.legalityStatus === 'banned' || entry.legalityStatus === 'Banned') status = 'Banned';
 
       if (format in result) {
         (result as any)[format] = status;

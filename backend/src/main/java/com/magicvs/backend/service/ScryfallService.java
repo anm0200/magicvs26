@@ -71,7 +71,6 @@ public class ScryfallService {
         if (onlyStandard) {
             query += " f:standard";
         }
-        // Agregamos lang:es a la query para obtener la versión en español si existe
         String url = SCRYFALL_API_BASE + "/cards/named?fuzzy=" + query + "&lang=es";
         try {
             JsonNode root = restTemplate.getForObject(url, JsonNode.class);
