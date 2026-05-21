@@ -4,5 +4,8 @@ public enum NotificationType {
     FRIEND_REQUEST,
     NEW_MESSAGE,
     BATTLE_INVITE,
-    SYSTEM
+    MATCH_FOUND,
+    MESSAGES_READ,
+    SYSTEM,
+    ACHIEVEMENT_UNLOCKED
 }

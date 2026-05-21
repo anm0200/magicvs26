@@ -54,8 +54,6 @@ public class ScryfallService {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-
-
     /**
      * Importa todas las cartas del formato Standard actual.
      */
@@ -73,15 +71,26 @@ public class ScryfallService {
         if (onlyStandard) {
             query += " f:standard";
         }
-        String url = SCRYFALL_API_BASE + "/cards/named?fuzzy=" + query;
+        // Agregamos lang:es a la query para obtener la versión en español si existe
+        String url = SCRYFALL_API_BASE + "/cards/named?fuzzy=" + query + "&lang=es";
         try {
             JsonNode root = restTemplate.getForObject(url, JsonNode.class);
             if (root != null) {
                 return saveOrUpdateCard(root);
             }
         } catch (Exception e) {
-            logger.error("Error al importar carta por nombre: {}", name, e);
-            throw new TransientIngestionException("Error al importar carta por nombre: " + name, e);
+            // Si falla en español, intentamos en inglés como fallback
+            logger.warn("No se encontró versión en español para {}, intentando en inglés...", name);
+            String fallbackUrl = SCRYFALL_API_BASE + "/cards/named?fuzzy=" + query;
+            try {
+                JsonNode fallbackRoot = restTemplate.getForObject(fallbackUrl, JsonNode.class);
+                if (fallbackRoot != null) {
+                    return saveOrUpdateCard(fallbackRoot);
+                }
+            } catch (Exception ex) {
+                logger.error("Error al importar carta por nombre (incluso en inglés): {}", name, ex);
+                throw new TransientIngestionException("Error al importar carta por nombre: " + name, ex);
+            }
         }
         return null;
     }
@@ -90,7 +99,7 @@ public class ScryfallService {
      * Importa todas las cartas de una expansión específica.
      */
     public int importCardsBySet(String setCode, boolean onlyStandard) {
-        String query = "set:" + setCode;
+        String query = "set:" + setCode + " lang:es";
         if (onlyStandard) {
             query += " f:standard";
         }
@@ -180,7 +189,7 @@ public class ScryfallService {
         card.setScryfallUri(node.has("scryfall_uri") ? node.get("scryfall_uri").asText() : null);
         card.setPrintsSearchUri(node.has("prints_search_uri") ? node.get("prints_search_uri").asText() : null);
         card.setRulingsUri(node.has("rulings_uri") ? node.get("rulings_uri").asText() : null);
-        
+
         // IDs externos
         card.setArenaId(node.has("arena_id") ? node.get("arena_id").asInt() : null);
         card.setMtgoId(node.has("mtgo_id") ? node.get("mtgo_id").asInt() : null);
@@ -250,7 +259,7 @@ public class ScryfallService {
     private void updateLegalities(Card card, JsonNode legalitiesNode) {
         // Eliminar existentes para esta carta
         cardLegalityRepository.deleteByCard(card);
-        
+
         Iterator<Map.Entry<String, JsonNode>> fields = legalitiesNode.properties().iterator();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
@@ -265,12 +274,24 @@ public class ScryfallService {
     private void updatePrices(Card card, JsonNode pricesNode) {
         CardPrice price = cardPriceRepository.findByCard(card).orElse(new CardPrice());
         price.setCard(card);
-        price.setUsd(pricesNode.has("usd") && !pricesNode.get("usd").isNull() ? new BigDecimal(pricesNode.get("usd").asText()) : null);
-        price.setUsdFoil(pricesNode.has("usd_foil") && !pricesNode.get("usd_foil").isNull() ? new BigDecimal(pricesNode.get("usd_foil").asText()) : null);
-        price.setUsdEtched(pricesNode.has("usd_etched") && !pricesNode.get("usd_etched").isNull() ? new BigDecimal(pricesNode.get("usd_etched").asText()) : null);
-        price.setEur(pricesNode.has("eur") && !pricesNode.get("eur").isNull() ? new BigDecimal(pricesNode.get("eur").asText()) : null);
-        price.setEurFoil(pricesNode.has("eur_foil") && !pricesNode.get("eur_foil").isNull() ? new BigDecimal(pricesNode.get("eur_foil").asText()) : null);
-        price.setTix(pricesNode.has("tix") && !pricesNode.get("tix").isNull() ? new BigDecimal(pricesNode.get("tix").asText()) : null);
+        price.setUsd(pricesNode.has("usd") && !pricesNode.get("usd").isNull()
+                ? new BigDecimal(pricesNode.get("usd").asText())
+                : null);
+        price.setUsdFoil(pricesNode.has("usd_foil") && !pricesNode.get("usd_foil").isNull()
+                ? new BigDecimal(pricesNode.get("usd_foil").asText())
+                : null);
+        price.setUsdEtched(pricesNode.has("usd_etched") && !pricesNode.get("usd_etched").isNull()
+                ? new BigDecimal(pricesNode.get("usd_etched").asText())
+                : null);
+        price.setEur(pricesNode.has("eur") && !pricesNode.get("eur").isNull()
+                ? new BigDecimal(pricesNode.get("eur").asText())
+                : null);
+        price.setEurFoil(pricesNode.has("eur_foil") && !pricesNode.get("eur_foil").isNull()
+                ? new BigDecimal(pricesNode.get("eur_foil").asText())
+                : null);
+        price.setTix(pricesNode.has("tix") && !pricesNode.get("tix").isNull()
+                ? new BigDecimal(pricesNode.get("tix").asText())
+                : null);
         price.setUpdatedAt(LocalDateTime.now());
         cardPriceRepository.save(price);
     }
@@ -293,7 +314,7 @@ public class ScryfallService {
             face.setFlavorText(faceNode.has("flavor_text") ? faceNode.get("flavor_text").asText() : null);
             face.setArtist(faceNode.has("artist") ? faceNode.get("artist").asText() : null);
             face.setColorsJson(faceNode.has("colors") ? faceNode.get("colors").toString() : "[]");
-            
+
             if (faceNode.has("image_uris")) {
                 JsonNode images = faceNode.get("image_uris");
                 face.setSmallImageUri(images.has("small") ? images.get("small").asText() : null);
@@ -303,7 +324,7 @@ public class ScryfallService {
                 face.setArtCropUri(images.has("art_crop") ? images.get("art_crop").asText() : null);
                 face.setBorderCropUri(images.has("border_crop") ? images.get("border_crop").asText() : null);
             }
-            
+
             face.setRawJson(faceNode.toString());
             cardFaceRepository.save(face);
         }

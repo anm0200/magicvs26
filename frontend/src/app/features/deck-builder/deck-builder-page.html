@@ -9,10 +9,21 @@
         </p>
       </div>
 
-      <div class="rounded-2xl border border-outline-variant/60 bg-surface/70 px-4 py-3 text-right">
-        <div class="text-xs uppercase tracking-[0.16em] text-on-surface/60">Formato</div>
-        <div class="mt-1 font-headline text-lg font-semibold text-primary">{{ deckFormatLabel }}</div>
-        <div class="mt-1 text-[11px] uppercase tracking-[0.16em] text-on-surface/55">{{ modeLabel }}</div>
+      <div class="flex items-center gap-3">
+        <button
+          (click)="openPublicDecksModal()"
+            class="flex items-center gap-2 rounded-2xl border border-secondary/40 bg-secondary/10 px-4 py-2.5 text-base font-semibold text-blue-500 transition hover:bg-secondary/20"
+            >
+          <span class="material-symbols-outlined text-lg text-blue-400">
+             public
+          </span>
+         Explorar Mazos Públicos
+        </button>
+        <div class="rounded-2xl border border-outline-variant/60 bg-surface/70 px-4 py-3 text-right">
+          <div class="text-xs uppercase tracking-[0.16em] text-on-surface/60">Formato</div>
+          <div class="mt-1 font-headline text-lg font-semibold text-primary">{{ deckFormatLabel }}</div>
+          <div class="mt-1 text-[11px] uppercase tracking-[0.16em] text-on-surface/55">{{ modeLabel }}</div>
+        </div>
       </div>
     </header>
 
@@ -91,7 +102,12 @@
                 <div class="h-2 w-full overflow-hidden rounded-full bg-surface">
                   <div class="h-full rounded-full bg-gradient-to-r from-secondary to-primary transition-all duration-500" [style.width.%]="deckProgressPercent()"></div>
                 </div>
-                <p class="mt-2 text-xs" [ngClass]="isValidDeck() ? 'text-emerald-300' : 'text-amber-200'">{{ validationMessage() }}</p>
+                <p class="mt-2 text-xs" [ngClass]="isValidDeck() ? 'text-emerald-300' : 'text-amber-200'">
+                  {{ validationMessage() }}
+                  @if (!isValidDeck()) {
+                    <span class="block mt-1 font-bold text-amber-300">⚠️ El mazo será inutilizable si no tiene 60 cartas.</span>
+                  }
+                </p>
               </div>
 
               <div class="rounded-2xl border border-outline-variant/60 bg-surface/70 p-3">
@@ -189,7 +205,7 @@
           <div class="mt-4 grid grid-cols-2 gap-2">
             <button
               (click)="saveDeck()"
-              [disabled]="!isValidDeck() || loading()"
+              [disabled]="loading()"
               class="rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-on-primary transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
             >
               @if (loading()) {
@@ -203,27 +219,32 @@
               class="rounded-xl border border-outline-variant bg-surface px-3 py-2 text-sm font-semibold text-on-surface transition hover:border-rose-400/80 hover:text-rose-200"
             >
               Limpiar
-              
             </button>
             <button
                (click)="copyCurrentDeck()"
               [disabled]="loading()"
-              class="rounded-xl bg-secondary px-3 py-2 text-sm font-semibold text-on-secondary transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              class="col-span-2 rounded-xl bg-secondary px-3 py-2 text-sm font-semibold text-on-secondary transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
                 >
               @if (loading()) {
               Clonando...
               } @else {
-                Clonar mazo
+                Clonar
               }
-  </button>
+            </button>
           </div>
         </div>
       </aside>
 
       <main class="min-w-0">
-        <!-- Si queréis centralizar glassmorphism, podéis mover estas clases a utilidades globales del design system -->
         <app-deck-search-panel (cardSelected)="onCardSelected($event)"></app-deck-search-panel>
       </main>
     </div>
   </div>
 </div>
+
+@if (showPublicDecksModal) {
+  <app-public-decks-modal
+    (close)="closePublicDecksModal()"
+    (deckCopied)="onPublicDeckCopied($event)"
+  ></app-public-decks-modal>
+}

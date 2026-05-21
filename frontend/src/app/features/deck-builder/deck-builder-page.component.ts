@@ -5,11 +5,12 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DeckBuilderService, Card, DeckCard } from '../../core/services/deck-builder.service';
 import { DeckSearchPanelComponent } from './deck-search-panel.component';
+import { PublicDecksModalComponent } from './public-decks-modal.component';
 
 @Component({
   selector: 'app-deck-builder-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, DeckSearchPanelComponent],
+  imports: [CommonModule, FormsModule, RouterModule, DeckSearchPanelComponent, PublicDecksModalComponent],
   templateUrl: './deck-builder-page.html',
   styleUrls: ['./deck-builder-page.scss']
 })
@@ -36,6 +37,7 @@ export class DeckBuilderPageComponent {
   loadingDeck = false;
   notificationMessage: string | null = null;
   notificationType: 'success' | 'error' | 'info' = 'success';
+  showPublicDecksModal = false;
   private notificationTimer?: number;
   private flippedDeckCardIds = new Set<number>();
 
@@ -177,10 +179,6 @@ export class DeckBuilderPageComponent {
   }
 
   saveDeck(): void {
-    if (!this.isValidDeck()) {
-      this.showNotification('El mazo debe tener exactamente 60 cartas.', 'error');
-      return;
-    }
 
     const save$ = this.editingDeckId != null
       ? this.deckService.saveDeck(this.editingDeckId)
@@ -306,18 +304,75 @@ export class DeckBuilderPageComponent {
 
     return 'Otros';
   }
-  copyCurrentDeck(): void {
-  if (!this.editingDeckId) return;
+  openPublicDecksModal(): void {
+    this.showPublicDecksModal = true;
+  }
 
-  this.deckService.copyDeck(this.editingDeckId).subscribe({
-    next: (newDeck) => {
-      this.showNotification('¡Mazo clonado con éxito! Ahora es tuyo.', 'success');
-      this.router.navigate(['/decks', newDeck.id, 'edit']);
-    },
-    error: (err) => {
-      const msg = err.status === 401 ? 'Debes iniciar sesión para clonar mazos' : 'Error al clonar el mazo';
-      this.showNotification(msg, 'error');
-    }
-  });
-}
+  closePublicDecksModal(): void {
+    this.showPublicDecksModal = false;
+  }
+
+  onPublicDeckCopied(event: { deckId: number; deckName: string }): void {
+    this.showPublicDecksModal = false;
+    this.showNotification(`"${event.deckName}" guardado en tus mazos.`, 'success');
+  }
+
+  copyCurrentDeck(): void {
+    if (!this.editingDeckId) return;
+
+    this.deckService.copyDeck(this.editingDeckId).subscribe({
+      next: (newDeck) => {
+        this.showNotification('¡Mazo clonado con éxito! Ahora es tuyo.', 'success');
+        this.router.navigate(['/decks', newDeck.id, 'edit']);
+      },
+      error: (err) => {
+        const msg = err.status === 401 ? 'Debes iniciar sesión para clonar mazos' : 'Error al clonar el mazo';
+        this.showNotification(msg, 'error');
+      }
+    });
+  }
+
+  exportDeckToFile(): void {
+    const deck = {
+      name: this.deckName(),
+      description: this.deckDescription(),
+      isPublic: this.deckIsPublic(),
+      cards: this.deckCards()
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(deck, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", (deck.name || "mazo_exportado") + ".json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+    this.showNotification('Mazo descargado', 'info');
+  }
+
+  importDeckFromFile(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (event: any) => {
+        try {
+          const deck = JSON.parse(event.target.result);
+          if (deck && Array.isArray(deck.cards)) {
+            this.deckService.clearDeck();
+            this.deckService.loadDeck(deck);
+            this.showNotification('Mazo importado correctamente. ¡Recuerda guardarlo!', 'success');
+          } else {
+            throw new Error('Invalid format');
+          }
+        } catch (error) {
+          this.showNotification('Error al importar el mazo. ¿Es un JSON válido?', 'error');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
 }

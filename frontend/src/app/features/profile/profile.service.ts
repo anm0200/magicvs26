@@ -6,6 +6,8 @@ export interface ProfileResponse {
   id: number;
   username: string;
   displayName: string | null;
+  profileTitle: string | null;
+  featuredAchievementKeys: string | null;
   avatarUrl: string | null;
   country: string | null;
   bio: string | null;
@@ -82,6 +84,17 @@ export class ProfileService {
     return this.http
       .patch<ProfileResponse>(`${this.apiUrl}/me`, data, { headers: this.authHeaders() })
       .pipe(map((profile) => this.normalizeProfile(profile)));
+  }
+
+  exportDeck(deckId: number): Observable<Blob> {
+    return this.http.get(`http://localhost:8080/api/decks/${deckId}/export`, {
+      headers: this.authHeaders(),
+      responseType: 'blob'
+    });
+  }
+
+  importDeck(name: string, deckText: string): Observable<{ deck: any, missingCards: string[] }> {
+    return this.http.post<{ deck: any, missingCards: string[] }>('http://localhost:8080/api/decks/import', { name, deckText }, { headers: this.authHeaders() });
   }
 
   deleteAccount(): Observable<void> {

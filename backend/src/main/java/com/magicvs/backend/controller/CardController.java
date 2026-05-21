@@ -3,12 +3,19 @@ package com.magicvs.backend.controller;
 import com.magicvs.backend.model.Card;
 import com.magicvs.backend.repository.CardRepository;
 import com.magicvs.backend.repository.CardSetRepository;
-import com.magicvs.backend.service.CardService;
 import com.magicvs.backend.dto.CardSummaryDTO;
 import com.magicvs.backend.dto.CardDetailDTO;
 import com.magicvs.backend.service.CardService;
+import com.magicvs.backend.model.FavoriteCard;
+import com.magicvs.backend.model.User;
+import com.magicvs.backend.repository.FavoriteCardRepository;
+import com.magicvs.backend.repository.RegistroRepository;
+import com.magicvs.backend.service.AuthService;
+import com.magicvs.backend.service.AchievementService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,7 +28,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PathVariable;
+ 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +55,18 @@ public class CardController {
     @Autowired
     private CardService cardService;
 
+    @Autowired
+    private FavoriteCardRepository favoriteCardRepository;
+
+    @Autowired
+    private RegistroRepository registroRepository;
+
+    @Autowired
+    private AuthService authService;
+
+    @Autowired
+    private AchievementService achievementService;
+
     @GetMapping("/stats")
     public Map<String, Object> getStats() {
         Map<String, Object> stats = new HashMap<>();
@@ -69,11 +88,33 @@ public class CardController {
         return ResponseEntity.ok(cardService.getCardsList(PageRequest.of(page, size)));
     }
     @GetMapping("/{id}")
-    public ResponseEntity<CardDetailDTO> getCardById(@PathVariable Long id) {
-        return cardService.getCardDetail(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<CardDetailDTO> getCardById(@PathVariable Long id,
+                                                     @RequestHeader(name = "Authorization", required = false) String authorization) {
+        java.util.Optional<CardDetailDTO> detailOpt = cardService.getCardDetail(id);
+
+        // If the user is authenticated, increment card-view achievements
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            try {
+                String token = authorization.replace("Bearer ", "");
+                Long userId = authService.getUserId(token).orElse(null);
+                if (userId != null) {
+                    registroRepository.findById(userId).ifPresent(user -> {
+                        try {
+                            achievementService.increment(user, "CARD_VIEW_FIRST");
+                            achievementService.increment(user, "CARD_VIEW_10");
+                            achievementService.increment(user, "CARD_VIEW_50");
+                            achievementService.increment(user, "CARD_VIEW_200");
+                            achievementService.increment(user, "CARD_VIEW_1000");
+                        } catch (Exception ignored) {
+                        }
+                    });
                 }
+            } catch (Exception ignored) {
+            }
+        }
+
+        return detailOpt.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    }
 
     /**
      * Busca cartas por nombre con paginacion
@@ -85,8 +126,21 @@ public class CardController {
             @RequestParam(defaultValue = "") String color,
             @RequestParam(defaultValue = "") String type,
             @RequestParam(defaultValue = "") String rarity,
+            @RequestParam(defaultValue = "false") boolean favoritesOnly,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "24") int size) {
+            @RequestParam(defaultValue = "24") int size,
+            @RequestHeader(name = "Authorization", required = false) String authorization) {
+
+        Long userId = null;
+        if (favoritesOnly) {
+            if (authorization == null || !authorization.startsWith("Bearer ")) {
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            }
+            userId = authService.getUserId(authorization.replace("Bearer ", "")).orElse(null);
+            if (userId == null) {
+                return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+            }
+        }
 
         String normalizedName = name == null ? "" : name.trim();
         String normalizedColors = color == null ? "" : color.trim().toUpperCase();
@@ -106,12 +160,12 @@ public class CardController {
 
         Pageable pageable = PageRequest.of(safePage, safeSize);
         Page<CardSearchResponse> mappedPage = cardRepository
-            .searchProjectedByNameAndFilters(normalizedName, noColorFilter, needsW, needsU, needsB, needsR, needsG, needsC, normalizedType, normalizedRarity, pageable)
+            .searchProjectedByNameAndFilters(normalizedName, noColorFilter, needsW, needsU, needsB, needsR, needsG, needsC, normalizedType, normalizedRarity, favoritesOnly, userId, pageable)
                 .map(card -> new CardSearchResponse(
                         card.getId(),
-                resolveDisplayName(card.getName(), card.getRawJson()),
-                resolveDisplayManaCost(card.getManaCost(), card.getRawJson()),
-                resolveDisplayType(card.getTypeLine(), card.getRawJson()),
+                cardService.resolveDisplayName(card.getName(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
+                resolveDisplayManaCost(card.getManaCost(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
+                cardService.resolveDisplayType(card.getTypeLine(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
                 resolveImageUrl(
                     card.getNormalImageUri(),
                     card.getSmallImageUri(),
@@ -121,7 +175,15 @@ public class CardController {
                 resolveBackImageUrl(card.getBackFaceNormalImageUri(), card.getBackFaceSmallImageUri()),
                 isDoubleFacedCard(card.getName(), card.getBackFaceNormalImageUri(), card.getBackFaceSmallImageUri()),
                         resolveColors(card.getColorsJson(), card.getManaCost()),
-                        card.getRarity()
+                        cardService.resolveDisplayRarity(card.getRarity()),
+                        card.getSetName(),
+                        card.getReleasedAt() != null ? card.getReleasedAt().toString() : null,
+                        card.getArtist(),
+                        card.getCollectorNumber(),
+                        card.getEdhrecRank(),
+                        cardService.resolveDisplayOracleText(card.getOracleText(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
+                        cardService.resolveDisplayFlavorText(card.getFlavorText(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
+                        card.getPower() != null && card.getToughness() != null ? card.getPower() + "/" + card.getToughness() : null
                 ));
 
         CardSearchPageResponse response = new CardSearchPageResponse(
@@ -135,6 +197,59 @@ public class CardController {
         );
 
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}/favorite")
+    public ResponseEntity<Map<String, Boolean>> checkFavoriteStatus(
+            @PathVariable Long id,
+            @RequestHeader(name = "Authorization", required = false) String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            return ResponseEntity.ok(Map.of("isFavorite", false));
+        }
+        Long userId = authService.getUserId(authorization.replace("Bearer ", "")).orElse(null);
+        if (userId == null) {
+            return ResponseEntity.ok(Map.of("isFavorite", false));
+        }
+        boolean isFavorite = favoriteCardRepository.existsByUserIdAndCardId(userId, id);
+        return ResponseEntity.ok(Map.of("isFavorite", isFavorite));
+    }
+
+    @PostMapping("/{id}/favorite")
+    public ResponseEntity<Map<String, Boolean>> toggleFavorite(
+            @PathVariable Long id,
+            @RequestHeader(name = "Authorization") String authorization) {
+        if (authorization == null || !authorization.startsWith("Bearer ")) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        Long userId = authService.getUserId(authorization.replace("Bearer ", "")).orElse(null);
+        if (userId == null) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+        
+        Card card = cardRepository.findById(id).orElse(null);
+        if (card == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        User user = registroRepository.findById(userId).orElse(null);
+        if (user == null) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        java.util.Optional<FavoriteCard> favoriteOpt = favoriteCardRepository.findByUserIdAndCardId(userId, id);
+        if (favoriteOpt.isPresent()) {
+            favoriteCardRepository.delete(favoriteOpt.get());
+            return ResponseEntity.ok(Map.of("isFavorite", false));
+        } else {
+            favoriteCardRepository.save(new FavoriteCard(user, card));
+            // Increment favorite-related achievements (first + cumulative thresholds)
+            achievementService.increment(user, "FAVORITES_FIRST");
+            achievementService.increment(user, "FAVORITES_10");
+            achievementService.increment(user, "FAVORITES_50");
+            achievementService.increment(user, "FAVORITES_200");
+            achievementService.increment(user, "FAVORITES_1000");
+            return ResponseEntity.ok(Map.of("isFavorite", true));
+        }
     }
 
     private static List<String> extractColorsFromManaCost(String manaCost) {
@@ -217,18 +332,7 @@ public class CardController {
         return colors;
     }
 
-    private static String resolveDisplayName(String defaultName, String rawJson) {
-        String localized = extractStringFromRawJson(rawJson, "printed_name");
-        return (localized != null && !localized.isBlank()) ? localized : defaultName;
-    }
 
-    private static String resolveDisplayType(String defaultTypeLine, String rawJson) {
-        String localized = extractStringFromRawJson(rawJson, "printed_type_line");
-        if (localized != null && !localized.isBlank()) {
-            return localized;
-        }
-        return defaultTypeLine == null ? "" : defaultTypeLine;
-    }
 
     private static String resolveDisplayManaCost(String defaultManaCost, String rawJson) {
         String localized = extractStringFromRawJson(rawJson, "printed_mana_cost");
@@ -262,8 +366,17 @@ public class CardController {
         private boolean doubleFaced;
         private List<String> colors;
         private String rarity;
+        private String setName;
+        private String releasedAt;
+        private String artist;
+        private String collectorNumber;
+        private Integer edhrecRank;
+        private String oracleText;
+        private String flavorText;
+        private String powerToughness;
 
-        public CardSearchResponse(Long id, String name, String manaCost, String type, String imageUrl, String backImageUrl, boolean doubleFaced, List<String> colors, String rarity) {
+        public CardSearchResponse(Long id, String name, String manaCost, String type, String imageUrl, String backImageUrl, boolean doubleFaced, List<String> colors, String rarity,
+                                  String setName, String releasedAt, String artist, String collectorNumber, Integer edhrecRank, String oracleText, String flavorText, String powerToughness) {
             this.id = id;
             this.name = name;
             this.manaCost = manaCost;
@@ -273,7 +386,25 @@ public class CardController {
             this.doubleFaced = doubleFaced;
             this.colors = colors;
             this.rarity = rarity;
+            this.setName = setName;
+            this.releasedAt = releasedAt;
+            this.artist = artist;
+            this.collectorNumber = collectorNumber;
+            this.edhrecRank = edhrecRank;
+            this.oracleText = oracleText;
+            this.flavorText = flavorText;
+            this.powerToughness = powerToughness;
         }
+
+        // Getters and Setters
+        public String getSetName() { return setName; }
+        public String getReleasedAt() { return releasedAt; }
+        public String getArtist() { return artist; }
+        public String getCollectorNumber() { return collectorNumber; }
+        public Integer getEdhrecRank() { return edhrecRank; }
+        public String getOracleText() { return oracleText; }
+        public String getFlavorText() { return flavorText; }
+        public String getPowerToughness() { return powerToughness; }
 
         public String getRarity() { return rarity; }
         public void setRarity(String rarity) { this.rarity = rarity; }

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Card } from '../../models/card.model';
@@ -26,23 +26,42 @@ export class CardService {
   }
 
   getCardById(id: string): Observable<Card> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const headers = token ? { headers: new HttpHeaders({ Authorization: `Bearer ${token}` }) } : {};
+    return this.http.get<any>(`${this.apiUrl}/${id}`, headers).pipe(
       map(card => this.mapBackendCardToCard(card))
     );
   }
 
-  searchCards(query = '', color = '', type = '', rarity = '', page = 0, size = 20): Observable<CardPage> {
-    const params = new URLSearchParams({
+  searchCards(query = '', color = '', type = '', rarity = '', page = 0, size = 20, favoritesOnly = false): Observable<CardPage> {
+    const params: Record<string, string> = {
       name: query,
       color,
       type,
       rarity,
       page: String(page),
-      size: String(size)
-    });
-    return this.http.get<any>(`${this.apiUrl}/search?${params}`).pipe(
+      size: String(size),
+      favoritesOnly: String(favoritesOnly)
+    };
+    
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const headers = token && favoritesOnly ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+
+    return this.http.get<any>(`${this.apiUrl}/search`, { params, headers }).pipe(
       map(response => this.mapSearchResponseToCardPage(response, page, size))
     );
+  }
+
+  checkFavoriteStatus(cardId: string): Observable<{ isFavorite: boolean }> {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+    return this.http.get<{ isFavorite: boolean }>(`${this.apiUrl}/${cardId}/favorite`, { headers });
+  }
+
+  toggleFavorite(cardId: string): Observable<{ isFavorite: boolean }> {
+    const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+    const headers = token ? new HttpHeaders({ Authorization: `Bearer ${token}` }) : new HttpHeaders();
+    return this.http.post<{ isFavorite: boolean }>(`${this.apiUrl}/${cardId}/favorite`, {}, { headers });
   }
 
   getStats(): Observable<{ totalCards: number; totalSets: number }> {
@@ -71,9 +90,16 @@ export class CardService {
       manaCost: this.parseManaCost(card.manaCost),
       type: card.type || '',
       rarity: this.capitalize(card.rarity) || '',
-      oracleText: '',
+      oracleText: card.oracleText || '',
+      flavorText: card.flavorText || '',
+      powerToughness: card.powerToughness || undefined,
       legalities: this.normalizeLegalities([]),
-      price: 0
+      price: 0,
+      setName: card.setName,
+      releasedAt: card.releasedAt,
+      artist: card.artist,
+      collectorNumber: card.collectorNumber,
+      edhrecRank: card.edhrecRank
     };
   }
 
@@ -153,12 +179,7 @@ export class CardService {
 
     return legalities.reduce((result: Card['legalities'], entry: any) => {
       const format = entry.formatName?.toLowerCase();
-      
-      // Mapeamos lo que viene del backend (ej: "not_legal") a lo que quiere el modelo (ej: "Not Legal")
-      let status: "Legal" | "Banned" | "Not Legal" = 'Not Legal';
-      
-      if (entry.legalityStatus === 'legal' || entry.legalityStatus === 'Legal') status = 'Legal';
-      if (entry.legalityStatus === 'banned' || entry.legalityStatus === 'Banned') status = 'Banned';
+      const status = entry.legalityStatus || 'No legal';
 
       if (format in result) {
         (result as any)[format] = status;
