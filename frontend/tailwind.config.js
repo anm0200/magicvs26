@@ -20,8 +20,7 @@ module.exports = {
       },
       fontFamily: {
         "headline": ["Space Grotesk"],
-        "body": ["Manrope"],
-        "lore": ["Newsreader"]
+        "body": ["Manrope"]
       }
     }
   },
