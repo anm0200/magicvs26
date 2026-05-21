@@ -30,6 +30,7 @@ public class CardService {
         return cardRepository.findAll(pageable)
                 .map(card -> new CardSummaryDTO(
                         card.getId(),
+                        card.getScryfallId(),
                         resolveDisplayName(card.getName(), card.getRawJson()),
                         resolveDisplayType(card.getTypeLine(), card.getRawJson()),
                         card.getNormalImageUri(),
@@ -45,6 +46,7 @@ public class CardService {
             
             return new CardDetailDTO(
                 card.getId(),
+                card.getScryfallId(),
                 resolveDisplayName(card.getName(), card.getRawJson()),
                 card.getManaCost(),
                 resolveDisplayType(card.getTypeLine(), card.getRawJson()),
@@ -125,7 +127,7 @@ public class CardService {
         return Arrays.asList(colorsJson.replaceAll("[\\[\\]\" ]", "").split(","));
     }
 
-    private String resolveDisplayName(String defaultName, String rawJson) {
+    public String resolveDisplayName(String defaultName, String rawJson) {
         String localized = extractStringFromRawJson(rawJson, "printed_name");
         return (localized != null && !localized.isBlank()) ? localized : defaultName;
     }
