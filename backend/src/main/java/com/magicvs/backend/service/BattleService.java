@@ -95,6 +95,7 @@ public class BattleService {
 
         // Marcar match como finalizado
         match.setStatus(MatchStatus.FINISHED);
+        match.setEloChange(newEloWinner - (winner.getId().equals(p1.getId()) ? oldEloP1 : oldEloP2));
         matchRepository.save(match);
 
         // Construir resultado para el Frontend
