@@ -18,28 +18,37 @@ public class IngestionJobDispatcher {
     private final NewsScrapingService newsScrapingService;
     private final NewsRepository newsRepository;
     private final MetaScrapingService metaScrapingService;
+    private final ImageDownloadService imageDownloadService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public IngestionJobDispatcher(
             ScryfallService scryfallService,
             NewsScrapingService newsScrapingService,
             NewsRepository newsRepository,
-            MetaScrapingService metaScrapingService) {
+            MetaScrapingService metaScrapingService,
+            ImageDownloadService imageDownloadService) {
         this.scryfallService = scryfallService;
         this.newsScrapingService = newsScrapingService;
         this.newsRepository = newsRepository;
         this.metaScrapingService = metaScrapingService;
+        this.imageDownloadService = imageDownloadService;
     }
 
     public void dispatch(IngestionJobType type, String payloadJson) {
         JsonNode payload = parse(payloadJson);
         switch (type) {
-            case CARD_IMPORT_STANDARD -> scryfallService.importStandardCards();
+            case CARD_IMPORT_STANDARD -> importStandardCards();
             case CARD_IMPORT_BY_NAME -> importCardByName(payload);
             case CARD_IMPORT_BY_SET -> importCardsBySet(payload);
+            case CARD_IMAGE_SYNC -> imageDownloadService.downloadMissingImages();
             case NEWS_SYNC -> syncNews();
             case META_SYNC -> metaScrapingService.syncMetagame(text(payload, "days", "30"));
         }
+    }
+
+    private void importStandardCards() {
+        scryfallService.importStandardCards();
+        imageDownloadService.downloadMissingImages();
     }
 
     private void importCardByName(JsonNode payload) {
@@ -49,12 +58,14 @@ public class IngestionJobDispatcher {
         if (card == null) {
             throw new IllegalArgumentException("No se pudo encontrar o importar la carta: " + name);
         }
+        imageDownloadService.downloadMissingImages();
     }
 
     private void importCardsBySet(JsonNode payload) {
         String code = requiredText(payload, "code");
         boolean onlyStandard = bool(payload, "onlyStandard", true);
         scryfallService.importCardsBySet(code, onlyStandard);
+        imageDownloadService.downloadMissingImages();
     }
 
     private void syncNews() {

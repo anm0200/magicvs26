@@ -55,6 +55,15 @@ public class CardImportController {
         return accepted("Importación del set " + code + " encolada", jobId);
     }
 
+    /**
+     * Descarga o rellena las imágenes locales faltantes para las cartas ya importadas.
+     */
+    @PostMapping("/images")
+    public ResponseEntity<Map<String, Object>> syncImages() {
+        UUID jobId = ingestionJobProducer.enqueue(IngestionJobType.CARD_IMAGE_SYNC, Map.of());
+        return accepted("Sincronización de imágenes locales encolada", jobId);
+    }
+
     private ResponseEntity<Map<String, Object>> accepted(String message, UUID jobId) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(Map.of(
                 "message", message,

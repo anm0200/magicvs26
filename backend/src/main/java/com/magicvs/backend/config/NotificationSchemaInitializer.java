@@ -1,5 +1,7 @@
 package com.magicvs.backend.config;
 
+import com.magicvs.backend.model.IngestionJobStatus;
+import com.magicvs.backend.model.IngestionJobType;
 import com.magicvs.backend.model.NotificationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,8 +19,6 @@ import java.util.stream.Collectors;
 public class NotificationSchemaInitializer {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationSchemaInitializer.class);
-    private static final String CONSTRAINT_NAME = "notifications_type_check";
-
     private final JdbcTemplate jdbcTemplate;
 
     public NotificationSchemaInitializer(JdbcTemplate jdbcTemplate) {
@@ -27,19 +27,25 @@ public class NotificationSchemaInitializer {
 
     @EventListener(ApplicationReadyEvent.class)
     public void synchronizeNotificationTypeConstraint() {
+        synchronizeEnumConstraint("notifications", "type", "notifications_type_check", NotificationType.values());
+        synchronizeEnumConstraint("ingestion_jobs", "type", "ingestion_jobs_type_check", IngestionJobType.values());
+        synchronizeEnumConstraint("ingestion_jobs", "status", "ingestion_jobs_status_check", IngestionJobStatus.values());
+    }
+
+    private void synchronizeEnumConstraint(String table, String column, String constraintName, Enum<?>[] values) {
         try {
-            String allowedTypes = Arrays.stream(NotificationType.values())
+            String allowedValues = Arrays.stream(values)
                     .map(Enum::name)
                     .map(value -> "'" + value.replace("'", "''") + "'")
                     .collect(Collectors.joining(", "));
 
-            jdbcTemplate.execute("ALTER TABLE notifications DROP CONSTRAINT IF EXISTS " + CONSTRAINT_NAME);
-            jdbcTemplate.execute("ALTER TABLE notifications ADD CONSTRAINT " + CONSTRAINT_NAME
-                    + " CHECK (type IN (" + allowedTypes + "))");
+            jdbcTemplate.execute("ALTER TABLE " + table + " DROP CONSTRAINT IF EXISTS " + constraintName);
+            jdbcTemplate.execute("ALTER TABLE " + table + " ADD CONSTRAINT " + constraintName
+                    + " CHECK (" + column + " IN (" + allowedValues + "))");
 
-            logger.info("Synchronized notifications type constraint with {} values", NotificationType.values().length);
+            logger.info("Synchronized {}.{} constraint with {} values", table, column, values.length);
         } catch (Exception ex) {
-            logger.warn("Could not synchronize notifications type constraint: {}", ex.getMessage());
+            logger.warn("Could not synchronize {}.{} constraint: {}", table, column, ex.getMessage());
         }
     }
 }
