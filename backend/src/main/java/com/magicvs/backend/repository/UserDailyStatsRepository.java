@@ -12,5 +12,6 @@ import java.util.Optional;
 @Repository
 public interface UserDailyStatsRepository extends JpaRepository<UserDailyStats, Long> {
     Optional<UserDailyStats> findByUserAndDate(User user, LocalDate date);
+
     List<UserDailyStats> findByDate(LocalDate date);
 }
