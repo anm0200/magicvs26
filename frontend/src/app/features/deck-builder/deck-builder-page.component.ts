@@ -6,11 +6,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DeckBuilderService, Card, DeckCard } from '../../core/services/deck-builder.service';
 import { DeckSearchPanelComponent } from './deck-search-panel.component';
 import { PublicDecksModalComponent } from './public-decks-modal.component';
+import { ManaCostPipe } from '../../shared/pipes/mana-cost.pipe';
 
 @Component({
   selector: 'app-deck-builder-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, DeckSearchPanelComponent, PublicDecksModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, DeckSearchPanelComponent, PublicDecksModalComponent, ManaCostPipe],
   templateUrl: './deck-builder-page.html',
   styleUrls: ['./deck-builder-page.scss']
 })
@@ -248,6 +249,11 @@ export class DeckBuilderPageComponent {
     this.notificationTimer = window.setTimeout(() => {
       this.notificationMessage = null;
     }, 3200);
+  }
+
+  colorNameToCode(name: string): string {
+    const map: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G', colorless: 'C' };
+    return map[name.toLowerCase()] ?? name.toUpperCase().charAt(0);
   }
 
   getColorClass(color: string): string {
