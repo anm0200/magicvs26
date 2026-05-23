@@ -1,8 +1,13 @@
-# Dockerfile para frontend Angular
 FROM node:20 AS build
 WORKDIR /app
+
+# Copiar archivos de dependencias primero para aprovechar la caché de Docker
+COPY package*.json ./
+RUN npm install --legacy-peer-deps
+
+# Copiar el resto del código del frontend
 COPY . .
-RUN npm install --legacy-peer-deps && npm run build
+RUN npm run build
 
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf

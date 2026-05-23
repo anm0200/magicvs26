@@ -1,0 +1,9 @@
+node_modules
+dist
+.angular
+.vscode
+.git
+.gitignore
+*.log
+src/assets/cards/*
+!src/assets/cards/.gitkeep

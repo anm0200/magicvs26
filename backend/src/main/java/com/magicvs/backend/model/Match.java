@@ -24,9 +24,13 @@ public class Match {
     private Long winnerId;
 
     // --- LÓGICA DE ELO ---
+    @Transient
     private int eloBeforeP1;
+    @Transient
     private int eloBeforeP2;
+    @Transient
     private int eloAfterP1;
+    @Transient
     private int eloAfterP2;
     private Integer eloChange; // Diferencia neta opcional
 
