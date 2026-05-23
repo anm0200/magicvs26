@@ -38,7 +38,6 @@ export class DeckBuilderPageComponent {
   loadingDeck = false;
   notificationMessage: string | null = null;
   notificationType: 'success' | 'error' | 'info' = 'success';
-  showPublicDecksModal = false;
   private notificationTimer?: number;
   private flippedDeckCardIds = new Set<number>();
 
@@ -310,19 +309,6 @@ export class DeckBuilderPageComponent {
 
     return 'Otros';
   }
-  openPublicDecksModal(): void {
-    this.showPublicDecksModal = true;
-  }
-
-  closePublicDecksModal(): void {
-    this.showPublicDecksModal = false;
-  }
-
-  onPublicDeckCopied(event: { deckId: number; deckName: string }): void {
-    this.showPublicDecksModal = false;
-    this.showNotification(`"${event.deckName}" guardado en tus mazos.`, 'success');
-  }
-
   copyCurrentDeck(): void {
     if (!this.editingDeckId) return;
 

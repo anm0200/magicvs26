@@ -24,14 +24,14 @@ public class Match {
     private Long winnerId;
 
     // --- LÓGICA DE ELO ---
-    @Column(name = "elo_before_p1")
-    private Integer eloBeforeP1 = 0;
-    @Column(name = "elo_before_p2")
-    private Integer eloBeforeP2 = 0;
-    @Column(name = "elo_after_p1")
-    private Integer eloAfterP1 = 0;
-    @Column(name = "elo_after_p2")
-    private Integer eloAfterP2 = 0;
+    @Transient
+    private int eloBeforeP1;
+    @Transient
+    private int eloBeforeP2;
+    @Transient
+    private int eloAfterP1;
+    @Transient
+    private int eloAfterP2;
     private Integer eloChange; // Diferencia neta opcional
 
     // --- ESTADO Y FORMATO ---
