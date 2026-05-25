@@ -146,14 +146,16 @@
                       <p class="truncate text-sm font-semibold text-on-surface">{{ deck.name }}</p>
                       <div class="mt-0.5 flex flex-wrap items-center gap-1.5">
                         <span class="text-[10px] text-on-surface/55">{{ deck.totalCards }} cartas</span>
-                        <span class="rounded-full border px-1.5 py-px text-[9px] font-semibold" [ngClass]="getManaClass(deck.averageCmc)">
-                          {{ getManaLabel(deck.averageCmc) }} maná
-                        </span>
+                        @if (deck.averageCmc != null) {
+                          <span class="rounded-full border px-1.5 py-px text-[9px] font-semibold" [ngClass]="getManaClass(deck.averageCmc)">
+                            {{ getManaLabel(deck.averageCmc) }} maná
+                          </span>
+                        }
                       </div>
                       <!-- Color identity pips -->
-                      @if (deck.colorIdentity.length > 0) {
+                      @if ((deck.colorIdentity ?? []).length > 0) {
                         <div class="mt-1.5 flex gap-1">
-                          @for (c of deck.colorIdentity; track c) {
+                          @for (c of deck.colorIdentity ?? []; track c) {
                             <img [src]="'https://svgs.scryfall.io/card-symbols/' + c + '.svg'"
                                  [alt]="c" [title]="getManaTitle(c)" class="h-4 w-4" />
                           }
@@ -198,11 +200,13 @@
                   <span class="rounded-full border border-outline-variant/50 bg-surface-container px-2.5 py-0.5 text-[11px] text-on-surface/60">
                     {{ selectedDeck()!.totalCards }} cartas
                   </span>
-                  <span class="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold" [ngClass]="getManaClass(selectedDeck()!.averageCmc)">
-                    {{ manaCurveLabel() }} · CMC {{ selectedDeck()!.averageCmc | number:'1.1-1' }}
-                  </span>
+                  @if (selectedDeck()!.totalManaCost != null) {
+                    <span class="rounded-full border px-2.5 py-0.5 text-[11px] font-semibold" [ngClass]="getManaClass(selectedDeck()!.averageCmc ?? 0)">
+                      {{ manaCurveLabel() }} · Mana total {{ (selectedDeck()!.totalManaCost ?? 0) | number:'1.0-0' }}
+                    </span>
+                  }
                   <!-- Color identity pips (larger, in preview header) -->
-                  @for (c of selectedDeck()!.colorIdentity; track c) {
+                  @for (c of selectedDeck()!.colorIdentity ?? []; track c) {
                     <img [src]="'https://svgs.scryfall.io/card-symbols/' + c + '.svg'"
                          [alt]="c" [title]="getManaTitle(c)" class="h-5 w-5" />
                   }

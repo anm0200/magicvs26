@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DeckBuilderService } from '../../core/services/deck-builder.service';
 import { ManaCostPipe } from '../../shared/pipes/mana-cost.pipe';
 
-function sortDecksAlpha(a: { name: string; averageCmc: number }, b: { name: string; averageCmc: number }): number {
+function sortDecksAlpha(a: { name: string; averageCmc?: number }, b: { name: string; averageCmc?: number }): number {
   const nameCompare = a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
   return nameCompare !== 0 ? nameCompare : (a.averageCmc || 0) - (b.averageCmc || 0);
 }
@@ -17,9 +17,10 @@ interface PublicDeck {
   updatedAt: string;
   isPublic: boolean;
   mainImageUrl: string | null;
-  cardNames: string[];
-  averageCmc: number;
-  colorIdentity: string[];
+  cardNames?: string[];
+  averageCmc?: number;
+  totalManaCost?: number;
+  colorIdentity?: string[];
 }
 
 interface PreviewCard {
@@ -97,8 +98,8 @@ export class PublicDecksModalComponent implements OnInit {
     const deck = this.selectedDeck();
     if (!deck) return '';
     const cmc = deck.averageCmc ?? 0;
-    if (cmc <= 2.0)  return 'Aggro (bajo maná)';
-    if (cmc >= 3.5)  return 'Control (alto maná)';
+    if (cmc <= 2.0)  return 'Aggro';
+    if (cmc >= 3.5)  return 'Control';
     return 'Midrange';
   });
 

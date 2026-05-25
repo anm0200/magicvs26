@@ -40,6 +40,15 @@ export class DeckBuilderPageComponent {
   notificationType: 'success' | 'error' | 'info' = 'success';
   private notificationTimer?: number;
   private flippedDeckCardIds = new Set<number>();
+  showPublicDecks = false;
+
+  get showingPublicDecks(): boolean {
+    return this.showPublicDecks;
+  }
+
+  set showingPublicDecks(value: boolean) {
+    this.showPublicDecks = value;
+  }
 
   readonly deckFormatLabel = 'Standard';
 
@@ -322,6 +331,18 @@ export class DeckBuilderPageComponent {
         this.showNotification(msg, 'error');
       }
     });
+  }
+
+  openPublicDecksModal(): void {
+    this.showPublicDecks = true;
+  }
+
+  onPublicDeckCopied(event: { deckId: number; deckName: string }): void {
+    this.showPublicDecks = false;
+    this.showNotification('¡Mazo clonado con éxito! Ahora es tuyo.', 'success');
+    if (event?.deckId) {
+      this.router.navigate(['/decks', event.deckId, 'edit']);
+    }
   }
 
   exportDeckToFile(): void {

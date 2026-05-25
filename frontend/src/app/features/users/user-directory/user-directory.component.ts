@@ -39,10 +39,19 @@ export class UserDirectoryComponent implements OnInit {
   filteredUsers = computed(() => {
     let list = [...this.users()];
     const search = this.searchTerm().toLowerCase().trim();
+    const normalizedSearch = search.replace(/^#/, '');
 
     // Filter by search term
-    if (search) {
-      list = list.filter(u => u.username.toLowerCase().includes(search));
+    if (normalizedSearch) {
+      list = list.filter(u => {
+        const username = u.username.toLowerCase();
+        const displayName = (u.displayName ?? '').toLowerCase();
+        const friendTag = (u.friendTag ?? '').toLowerCase();
+
+        return username.includes(normalizedSearch)
+          || displayName.includes(normalizedSearch)
+          || friendTag.includes(normalizedSearch);
+      });
     }
 
     // Sort users

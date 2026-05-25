@@ -51,6 +51,26 @@
   z-index: 20;
 }
 
+.opening-hand-scene {
+  position: relative;
+  width: min(100%, 552px);
+  height: 500px;
+}
+
+.opening-hand-card {
+  aspect-ratio: 5 / 7;
+  transform-origin: center top;
+  pointer-events: none;
+}
+
+.opening-hand-card-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+
 // Custom scrollbar for better look
 main {
   scrollbar-width: thin;
@@ -72,4 +92,5 @@ main {
       background-color: rgba(255, 255, 255, 0.2);
     }
   }
+  
 }
