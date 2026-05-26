@@ -8,9 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.client.RestTemplate;
 import java.net.URI;
 
@@ -20,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
+@Profile("worker")
 public class ScryfallService {
 
     private static final Logger logger = LoggerFactory.getLogger(ScryfallService.class);
@@ -46,12 +49,14 @@ public class ScryfallService {
     @Autowired
     private RulingRepository rulingRepository;
 
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * Importa todas las cartas del formato Standard actual.
      */
-    @Transactional
     public int importStandardCards() {
         String url = SCRYFALL_API_BASE + "/cards/search?q=f:standard+lang:es";
         return fetchAndSaveAll(url);
@@ -66,14 +71,25 @@ public class ScryfallService {
         if (onlyStandard) {
             query += " f:standard";
         }
-        String url = SCRYFALL_API_BASE + "/cards/named?fuzzy=" + query;
+        String url = SCRYFALL_API_BASE + "/cards/named?fuzzy=" + query + "&lang=es";
         try {
             JsonNode root = restTemplate.getForObject(url, JsonNode.class);
             if (root != null) {
                 return saveOrUpdateCard(root);
             }
         } catch (Exception e) {
-            logger.error("Error al importar carta por nombre: {}", name, e);
+            // Si falla en español, intentamos en inglés como fallback
+            logger.warn("No se encontró versión en español para {}, intentando en inglés...", name);
+            String fallbackUrl = SCRYFALL_API_BASE + "/cards/named?fuzzy=" + query;
+            try {
+                JsonNode fallbackRoot = restTemplate.getForObject(fallbackUrl, JsonNode.class);
+                if (fallbackRoot != null) {
+                    return saveOrUpdateCard(fallbackRoot);
+                }
+            } catch (Exception ex) {
+                logger.error("Error al importar carta por nombre (incluso en inglés): {}", name, ex);
+                throw new TransientIngestionException("Error al importar carta por nombre: " + name, ex);
+            }
         }
         return null;
     }
@@ -81,9 +97,8 @@ public class ScryfallService {
     /**
      * Importa todas las cartas de una expansión específica.
      */
-    @Transactional
     public int importCardsBySet(String setCode, boolean onlyStandard) {
-        String query = "set:" + setCode;
+        String query = "set:" + setCode + " lang:es";
         if (onlyStandard) {
             query += " f:standard";
         }
@@ -93,6 +108,7 @@ public class ScryfallService {
 
     private int fetchAndSaveAll(String initialUrl) {
         int count = 0;
+        int page = 1;
         String nextUrl = initialUrl;
 
         while (nextUrl != null) {
@@ -104,24 +120,39 @@ public class ScryfallService {
                 }
 
                 JsonNode data = response.get("data");
-                for (JsonNode cardNode : data) {
-                    saveOrUpdateCard(cardNode);
-                    count++;
-                }
+                int pageCount = savePage(data);
+                count += pageCount;
+                logger.info("Imported Scryfall page page={} pageCards={} totalCards={}", page, pageCount, count);
 
                 if (response.has("has_more") && response.get("has_more").asBoolean()) {
                     nextUrl = response.get("next_page").asText();
+                    page++;
                     // Rate limiting: Scryfall agradece 100ms entre peticiones
                     Thread.sleep(100);
                 } else {
                     nextUrl = null;
                 }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new TransientIngestionException("Importación interrumpida", e);
             } catch (Exception e) {
                 logger.error("Error durante la importación masiva", e);
-                break;
+                throw new TransientIngestionException("Error durante la importación masiva", e);
             }
         }
         return count;
+    }
+
+    private int savePage(JsonNode data) {
+        Integer saved = transactionTemplate.execute(status -> {
+            int pageCount = 0;
+            for (JsonNode cardNode : data) {
+                saveOrUpdateCard(cardNode);
+                pageCount++;
+            }
+            return pageCount;
+        });
+        return saved == null ? 0 : saved;
     }
 
     private Card saveOrUpdateCard(JsonNode node) {

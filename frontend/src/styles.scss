@@ -48,6 +48,135 @@ h1, h2, h3, .font-headline {
   background-image: linear-gradient(135deg, #ecb2ff 0%, #8e44ad 100%) !important;
 }
 
+.arena-root {
+  --surface: #060e20;
+  --surface-container: #101f3f;
+  --surface-variant: 31, 47, 79;
+  background: #060e20;
+}
+
+.arena-bg {
+  background:
+    radial-gradient(circle at 24% 22%, color-mix(in srgb, var(--arena-accent) 28%, transparent), transparent 34%),
+    radial-gradient(circle at 76% 64%, rgba(143, 200, 255, 0.16), transparent 32%),
+    linear-gradient(180deg, #060e20 0%, #0b162d 58%, #060e20 100%);
+}
+
+.arena-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.032) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.024) 1px, transparent 1px);
+  background-size: 72px 72px;
+  opacity: 0.38;
+  mask-image: radial-gradient(ellipse at center, black 58%, transparent 100%);
+}
+
+.arena-shell {
+  grid-template-columns: 18rem minmax(0, 1fr) 20rem;
+  transition: grid-template-columns 220ms ease;
+}
+
+.arena-shell.command-collapsed {
+  grid-template-columns: 4.25rem minmax(0, 1fr) 20rem;
+}
+
+.arena-shell.context-collapsed {
+  grid-template-columns: 18rem minmax(0, 1fr) 4.25rem;
+}
+
+.arena-shell.command-collapsed.context-collapsed {
+  grid-template-columns: 4.25rem minmax(0, 1fr) 4.25rem;
+}
+
+.glass-hud {
+  background:
+    linear-gradient(145deg, rgba(16, 31, 63, 0.62), rgba(11, 22, 45, 0.42)),
+    rgba(32, 31, 31, 0.24);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 24px 60px rgba(5, 9, 18, 0.42);
+}
+
+.arena-stage {
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--arena-accent) 12%, transparent), transparent 56%),
+    rgba(6, 14, 32, 0.22);
+  mask-image: radial-gradient(ellipse at center, black 76%, transparent 100%);
+}
+
+.hud-kicker {
+  color: rgba(143, 200, 255, 0.8);
+  font: 800 0.68rem Manrope, sans-serif;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.hud-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+  background: rgba(var(--surface-variant), 0.42);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: rgba(229, 226, 225, 0.72);
+  transition: color 140ms ease, filter 140ms ease, transform 140ms ease;
+}
+
+.hud-icon:hover {
+  color: #fff;
+  filter: drop-shadow(0 0 14px rgba(143, 200, 255, 0.24));
+  transform: translateY(-1px);
+}
+
+.hud-rail-label {
+  writing-mode: vertical-rl;
+  color: rgba(229, 226, 225, 0.48);
+  font: 800 0.68rem Manrope, sans-serif;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1023px) {
+  .arena-shell,
+  .arena-shell.command-collapsed,
+  .arena-shell.context-collapsed,
+  .arena-shell.command-collapsed.context-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .command-panel {
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    top: 5.6rem;
+    z-index: 45;
+    max-height: 40vh;
+    overflow: auto;
+  }
+
+  .context-panel {
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 40;
+    max-height: 28vh;
+    overflow: auto;
+  }
+
+  .arena-stage {
+    height: calc(100vh - 7rem);
+  }
+}
+
 // --- GLOBAL MAGIC AVATAR SYSTEM ---
 
 @keyframes mana-pulse {

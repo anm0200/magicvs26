@@ -44,6 +44,7 @@ public interface CardRepository extends JpaRepository<Card, Long> {
         UUID getScryfallId();
         String getNormalImageUri();
         String getFaceNormalImageUri();
+        String getBackFaceNormalImageUri();
     }
 
     Optional<Card> findByScryfallId(UUID scryfallId);
@@ -55,13 +56,20 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     @Query("""
         SELECT c.scryfallId AS scryfallId,
                c.normalImageUri AS normalImageUri,
-               firstFace.normalImageUri AS faceNormalImageUri
+               firstFace.normalImageUri AS faceNormalImageUri,
+               lastFace.normalImageUri AS backFaceNormalImageUri
         FROM Card c
         LEFT JOIN c.faces firstFace
             ON firstFace.faceOrder = (
                 SELECT MIN(f1.faceOrder)
                 FROM CardFace f1
                 WHERE f1.card = c
+            )
+        LEFT JOIN c.faces lastFace
+            ON lastFace.faceOrder = (
+                SELECT MAX(f2.faceOrder)
+                FROM CardFace f2
+                WHERE f2.card = c
             )
         """)
     List<CardImageProjection> findAllImageUris();

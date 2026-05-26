@@ -120,7 +120,7 @@
 
                   @if (isDoubleFaced(card)) {
                     <img
-                      [src]="card.backImageUrl"
+                      [src]="card.scryfallId ? '/assets/cards/' + card.scryfallId + '-back.jpg' : fallbackImage"
                       [alt]="card.name + ' (trasera)'"
                       (error)="onImageError($event)"
                       class="card-image card-face-back"

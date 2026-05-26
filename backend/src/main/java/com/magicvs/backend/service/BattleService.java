@@ -25,6 +25,7 @@ public class BattleService {
     private final DeckRepository deckRepository;
     private final RegistroRepository registroRepository;
     private final EloService eloService;
+    private final TournamentService tournamentService;
 
     private final ObjectMapper objectMapper = new ObjectMapper()
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -63,7 +64,7 @@ public class BattleService {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new RuntimeException("Match not found"));
         
-        if ("FINISHED".equals(match.getStatus())) {
+        if (match.getStatus() == MatchStatus.FINISHED) {
             log.warn("Match {} already finished", matchId);
             return null; 
         }
@@ -94,9 +95,13 @@ public class BattleService {
         registroRepository.save(loser);
 
         // Marcar match como finalizado
+        match.setWinnerId(winnerId);
         match.setStatus(MatchStatus.FINISHED);
         match.setEloChange(newEloWinner - (winner.getId().equals(p1.getId()) ? oldEloP1 : oldEloP2));
+        match.setFinishedAt(java.time.LocalDateTime.now());
         matchRepository.save(match);
+
+        tournamentService.completeArenaMatchResult(matchId, winnerId);
 
         // Construir resultado para el Frontend
         MatchResultDTO result = new MatchResultDTO();
@@ -219,14 +224,42 @@ public class BattleService {
         return cs;
     }
 
+    @Transactional
     public void updateGameState(Long matchId, Object state) {
         Match match = matchRepository.findById(matchId).orElseThrow();
         try {
             match.setLiveState(objectMapper.writeValueAsString(state));
             matchRepository.save(match);
+            resolveWinnerFromState(state).ifPresent(winnerId -> {
+                if (match.getStatus() != MatchStatus.FINISHED) {
+                    finishMatch(matchId, winnerId);
+                }
+            });
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize game state update for match {}", matchId, e);
         }
+    }
+
+    private Optional<Long> resolveWinnerFromState(Object state) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode winnerNode = objectMapper.valueToTree(state).get("winnerId");
+            if (winnerNode == null || winnerNode.isNull()) {
+                return Optional.empty();
+            }
+            if (winnerNode.isNumber()) {
+                return Optional.of(winnerNode.asLong());
+            }
+            if (winnerNode.isTextual()) {
+                String rawWinner = winnerNode.asText();
+                if (rawWinner == null || rawWinner.isBlank() || "DRAW".equalsIgnoreCase(rawWinner)) {
+                    return Optional.empty();
+                }
+                return Optional.of(Long.parseLong(rawWinner));
+            }
+        } catch (IllegalArgumentException ex) {
+            log.warn("Ignoring unsupported winnerId in game state", ex);
+        }
+        return Optional.empty();
     }
 
     public GameState getGameState(Long matchId) {

@@ -4,10 +4,7 @@ import com.magicvs.backend.dto.NewsDto;
 import com.magicvs.backend.model.News;
 import com.magicvs.backend.repository.NewsRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,23 +15,6 @@ import java.util.stream.Collectors;
 public class NewsService {
 
     private final NewsRepository newsRepository;
-    private final NewsScrapingService newsScrapingService;
-
-    @Transactional
-    public void fetchAndSaveNews() {
-        List<News> scrapedNews = newsScrapingService.scrapeNews();
-        for (News news : scrapedNews) {
-            if (!newsRepository.existsByUrl(news.getUrl())) {
-                newsRepository.save(news);
-            }
-        }
-    }
-
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady() {
-       newsRepository.deleteAll();
-        fetchAndSaveNews();
-    }
 
     public LocalDateTime getLastUpdateDate() {
         return newsRepository.findAll().stream()
