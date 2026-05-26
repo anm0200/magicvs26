@@ -16,6 +16,8 @@ import { UserProfileComponent } from './features/users/user-profile/user-profile
 import { OAuthConfirm } from './features/oauth-confirm/oauth-confirm';
 import { ResetPassword } from './features/reset-password/reset-password';
 import { DeckDetailComponent } from './features/decks/deck-detail/deck-detail.component';
+import { TournamentsDashboardComponent } from './features/tournaments/tournaments-dashboard.component';
+import { TournamentDetailComponent } from './features/tournaments/tournament-detail.component';
 import { MatchBrowserComponent } from './features/arena/match-browser/match-browser.component';
 import { BattleboardComponent } from './features/battle/battleboard/battleboard.component';
 import { AchievementsPageComponent } from './features/achievements/achievements-page.component';
@@ -40,6 +42,9 @@ export const routes: Routes = [
       { path: 'decks/create', component: DeckBuilderPageComponent, canActivate: [authGuard] },
       { path: 'decks/:deckId/edit', component: DeckBuilderPageComponent, canActivate: [authGuard] },
       { path: 'decks/:id', component: DeckDetailComponent },
+      { path: 'combat', pathMatch: 'full', redirectTo: 'tournaments' },
+      { path: 'tournaments', component: TournamentsDashboardComponent, canActivate: [authGuard] },
+      { path: 'tournaments/:id', component: TournamentDetailComponent, canActivate: [authGuard] },
       { path: 'users', component: UserDirectoryComponent },
       { path: 'users/:id', component: UserProfileComponent },
       { path: 'arena', component: MatchBrowserComponent, canActivate: [authGuard] },
