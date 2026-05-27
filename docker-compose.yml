@@ -34,8 +34,10 @@ services:
       SPRING_DATASOURCE_PASSWORD: postgres
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
-      SMTP_USER: "noreplymagicvs@gmail.com"
-      SMTP_PASS: "qhxmzwbsoozavefg"
+      SMTP_HOST: "smtp-relay.brevo.com"
+      SMTP_PORT: "587"
+      SMTP_USER: "ac716e001@smtp-brevo.com"
+      SMTP_PASS: "xsmtpsib-66c2d82e67c60891069847d8142822801b9a733b003dcdde40e317152f3b0322-0WZBeDbnyDZGdSgj"
       SMTP_FROM: "noreplymagicvs@gmail.com"
       DECK_MIN_CARDS: ${DECK_MIN_CARDS:-60}
     ports:
