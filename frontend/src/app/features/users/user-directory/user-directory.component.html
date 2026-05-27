@@ -165,7 +165,7 @@
         {{ searchTerm() ? 'No hay coincidencias' : 'Sin resultados' }}
       </h3>
       <p class="text-zinc-500 font-body max-w-sm mb-8">
-        {{ searchTerm() ? 'No hemos encontrado invocadores que coincidan con "' + searchTerm() + '". Si estás buscando por tag amigo, asegúrate de que esté completo.' : 'No se encontraron invocadores en la base de datos.' }}
+        {{ searchTerm() ? 'No hemos encontrado invocadores que coincidan con "' + searchTerm() + '". Si estás buscando por tag amigo, asegúrate de que esté completo y empiece con el símbolo #' : 'No se encontraron invocadores en la base de datos.' }}
       </p>
       @if (searchTerm()) {
         <button (click)="searchTerm.set('')" class="bg-primary/10 border border-primary/20 text-primary px-8 py-3 rounded-lg font-headline text-xs font-bold uppercase tracking-widest hover:bg-primary/20 transition-all">
