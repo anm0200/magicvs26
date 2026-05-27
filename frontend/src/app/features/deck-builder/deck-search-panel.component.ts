@@ -5,9 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { catchError, debounceTime, distinctUntilChanged, finalize, switchMap, timeout } from 'rxjs/operators';
 import { BehaviorSubject, Subject, of } from 'rxjs';
+import { ManaCostPipe } from '../../shared/pipes/mana-cost.pipe';
 
 interface Card {
   id: number;
+  scryfallId?: string;
   name: string;
   manaCost: string;
   type: string;
@@ -35,13 +37,13 @@ interface SearchState {
 @Component({
   selector: 'app-deck-search-panel',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ManaCostPipe],
   templateUrl: './deck-search-panel.html',
   styleUrls: ['./deck-search-panel.scss']
 })
 export class DeckSearchPanelComponent {
   @Output() cardSelected = new EventEmitter<Card>();
-  readonly fallbackImage = 'https://placehold.co/488x680/111827/e5e7eb?text=MagicVS';
+  readonly fallbackImage = '/assets/images/default-deck.png';
 
   private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
@@ -226,7 +228,9 @@ export class DeckSearchPanelComponent {
       return;
     }
 
-    target.src = this.fallbackImage;
+    if (!target.src.endsWith(this.fallbackImage)) {
+      target.src = this.fallbackImage;
+    }
   }
 
   setColorFilter(color: string): void {

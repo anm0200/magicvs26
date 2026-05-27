@@ -30,7 +30,11 @@ public ResponseEntity<DeckResponseDTO> createDeck(
     @RequestHeader(name = "Authorization") String authorization, 
     @RequestBody CreateDeckDTO deckDTO
 ) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(deckService.createDeck(authorization, deckDTO));
+    try {
+        return ResponseEntity.status(HttpStatus.CREATED).body(deckService.createDeck(authorization, deckDTO));
+    } catch (IllegalArgumentException ex) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
 }
 
     @PutMapping("/{deckId}")

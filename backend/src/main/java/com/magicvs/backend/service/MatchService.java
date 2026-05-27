@@ -26,15 +26,18 @@ public class MatchService {
     private final UserDailyStatsRepository dailyStatsRepository;
     private final AchievementService achievementService;
     private final DeckCardRepository deckCardRepository;
+    private final com.magicvs.backend.repository.FriendshipRepository friendshipRepository;
 
     public MatchService(MatchRepository matchRepository, RegistroRepository userRepository,
                         UserDailyStatsRepository dailyStatsRepository, AchievementService achievementService,
-                        DeckCardRepository deckCardRepository) {
+                        DeckCardRepository deckCardRepository,
+                        com.magicvs.backend.repository.FriendshipRepository friendshipRepository) {
         this.matchRepository = matchRepository;
         this.userRepository = userRepository;
         this.dailyStatsRepository = dailyStatsRepository;
         this.achievementService = achievementService;
         this.deckCardRepository = deckCardRepository;
+        this.friendshipRepository = friendshipRepository;
     }
 
     public List<MatchHistoryDto> getHistoryForUser(Long userId) {
@@ -46,20 +49,37 @@ public class MatchService {
                 .collect(Collectors.toList());
     }
 
+    public List<MatchHistoryDto> getActiveMatchesForFriends(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow();
+        List<com.magicvs.backend.model.Friendship> friends = friendshipRepository.findAcceptedFriendsForUser(user);
+        
+        List<Long> friendIds = friends.stream()
+            .map(f -> f.getUser().getId().equals(userId) ? f.getFriend().getId() : f.getUser().getId())
+            .collect(Collectors.toList());
+            
+        if (friendIds.isEmpty()) {
+            return List.of();
+        }
+        
+        List<Match> matches = matchRepository.findActiveMatchesByFriendIds(friendIds);
+        return matches.stream()
+                .map(m -> mapToDto(m, userId))
+                .collect(Collectors.toList());
+    }
+
+
     private MatchHistoryDto mapToDto(Match match, Long currentUserId) {
         MatchHistoryDto dto = new MatchHistoryDto();
         dto.setId(match.getId());
-        
+
         dto.setPlayer1(new MatchHistoryDto.PlayerDto(
                 match.getPlayer1().getUsername(),
-                match.getPlayer1().getAvatarUrl()
-        ));
-        
+                match.getPlayer1().getAvatarUrl()));
+
         if (match.getPlayer2() != null) {
             dto.setPlayer2(new MatchHistoryDto.PlayerDto(
                     match.getPlayer2().getUsername(),
-                    match.getPlayer2().getAvatarUrl()
-            ));
+                    match.getPlayer2().getAvatarUrl()));
         }
 
         // Determine winner display
@@ -74,7 +94,8 @@ public class MatchService {
         dto.setScore(match.getScoreP1() + " - " + match.getScoreP2());
         dto.setEloChange(match.getEloChange());
         dto.setFormat(match.getFormat());
-        dto.setTimestamp(match.getFinishedAt() != null ? match.getFinishedAt().toString() : match.getCreatedAt().toString());
+        dto.setTimestamp(
+                match.getFinishedAt() != null ? match.getFinishedAt().toString() : match.getCreatedAt().toString());
 
         List<String> cards1 = List.of();
         String img1 = null;
@@ -171,9 +192,13 @@ public class MatchService {
     @Transactional
     public void checkEloAchievements(User user) {
         int elo = user.getEloRating();
-        if (elo >= 1400) achievementService.increment(user, "ELO_1400");
-        if (elo >= 1600) achievementService.increment(user, "ELO_1600");
-        if (elo >= 2000) achievementService.increment(user, "ELO_2000");
-        if (elo >= 2400) achievementService.increment(user, "ELO_2400");
+        if (elo >= 1400)
+            achievementService.increment(user, "ELO_1400");
+        if (elo >= 1600)
+            achievementService.increment(user, "ELO_1600");
+        if (elo >= 2000)
+            achievementService.increment(user, "ELO_2000");
+        if (elo >= 2400)
+            achievementService.increment(user, "ELO_2400");
     }
 }

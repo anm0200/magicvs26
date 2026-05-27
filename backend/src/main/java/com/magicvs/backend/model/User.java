@@ -2,6 +2,8 @@ package com.magicvs.backend.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.Set;
+import java.util.HashSet;
 
 @Entity
 @Table(name = "users")
@@ -56,6 +58,9 @@ public class User {
     @Column(name = "friend_tag", unique = true, length = 16)
     private String friendTag;
 
+    @Column(name = "points")
+    private Integer puntos = 0;
+
     @Column(name = "friends_count", nullable = false)
     private Integer friendsCount = 0;
 
@@ -80,6 +85,14 @@ public class User {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    // --- Lógica de bloqueo ---
+    @ManyToMany
+    @JoinTable(
+        name = "user_blocks",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "blocked_user_id")
+    )
+    private Set<User> blockedUsers = new HashSet<>();
 
     public User() {}
 
@@ -93,6 +106,7 @@ public class User {
         if (this.gamesPlayed == null) this.gamesPlayed = 0;
         if (this.gamesWon == null) this.gamesWon = 0;
         if (this.gamesLost == null) this.gamesLost = 0;
+        if (this.puntos == null) this.puntos = 0;
         if (this.friendsCount == null) this.friendsCount = 0;
         if (this.active == null) this.active = true;
         if (this.isOnline == null) this.isOnline = false;
@@ -157,6 +171,11 @@ public class User {
 
     public Integer getGamesLost() { return gamesLost; }
     public void setGamesLost(Integer gamesLost) { this.gamesLost = gamesLost; }
+    public Integer getPuntos() { return puntos; }
+    public void setPuntos(Integer puntos) { this.puntos = puntos; }
+    public Set<User> getBlockedUsers() { return blockedUsers; }
+
+    public void setBlockedUsers(Set<User> blockedUsers) { this.blockedUsers = blockedUsers; }
     public String getProfileTitle() {
         return profileTitle;
     }
@@ -176,7 +195,14 @@ public class User {
     public Integer getEloRating() {
         return eloRating;
     }
+    public void block(User target) {
+        this.blockedUsers.add(target);
+    }
 
+    public void unblock(User target) {
+        this.blockedUsers.remove(target);
+    }
+    
     public String getFriendTag() { return friendTag; }
     public void setFriendTag(String friendTag) { this.friendTag = friendTag; }
 

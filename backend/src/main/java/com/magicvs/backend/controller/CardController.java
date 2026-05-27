@@ -115,6 +115,18 @@ public class CardController {
         return detailOpt.map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/all-images")
+    public ResponseEntity<List<Map<String, String>>> getAllImages() {
+        List<Map<String, String>> images = cardRepository.findAll().stream()
+                .filter(c -> c.getScryfallId() != null && c.getNormalImageUri() != null)
+                .map(c -> Map.of(
+                        "scryfallId", c.getScryfallId().toString(),
+                        "url", c.getNormalImageUri()
+                ))
+                .toList();
+        return ResponseEntity.ok(images);
+    }
+
     /**
      * Busca cartas por nombre con paginacion
      * GET /api/cards/search?name=query&page=0&size=24
@@ -126,12 +138,13 @@ public class CardController {
             @RequestParam(defaultValue = "") String type,
             @RequestParam(defaultValue = "") String rarity,
             @RequestParam(defaultValue = "false") boolean favoritesOnly,
+            @RequestParam(defaultValue = "false") boolean collectionOnly,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "24") int size,
             @RequestHeader(name = "Authorization", required = false) String authorization) {
 
         Long userId = null;
-        if (favoritesOnly) {
+        if (favoritesOnly || collectionOnly) {
             if (authorization == null || !authorization.startsWith("Bearer ")) {
                 return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
             }
@@ -159,12 +172,13 @@ public class CardController {
 
         Pageable pageable = PageRequest.of(safePage, safeSize);
         Page<CardSearchResponse> mappedPage = cardRepository
-            .searchProjectedByNameAndFilters(normalizedName, noColorFilter, needsW, needsU, needsB, needsR, needsG, needsC, normalizedType, normalizedRarity, favoritesOnly, userId, pageable)
+            .searchProjectedByNameAndFilters(normalizedName, noColorFilter, needsW, needsU, needsB, needsR, needsG, needsC, normalizedType, normalizedRarity, favoritesOnly, collectionOnly, userId, pageable)
                 .map(card -> new CardSearchResponse(
                         card.getId(),
+                        card.getScryfallId(),
                 cardService.resolveDisplayName(card.getName(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
                 resolveDisplayManaCost(card.getManaCost(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
-                cardService.resolveDisplayType(card.getTypeLine(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
+                resolveDisplayType(card.getTypeLine(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
                 resolveImageUrl(
                     card.getNormalImageUri(),
                     card.getSmallImageUri(),
@@ -174,14 +188,14 @@ public class CardController {
                 resolveBackImageUrl(card.getBackFaceNormalImageUri(), card.getBackFaceSmallImageUri()),
                 isDoubleFacedCard(card.getName(), card.getBackFaceNormalImageUri(), card.getBackFaceSmallImageUri()),
                         resolveColors(card.getColorsJson(), card.getManaCost()),
-                        cardService.resolveDisplayRarity(card.getRarity()),
+                        card.getRarity(),
                         card.getSetName(),
                         card.getReleasedAt() != null ? card.getReleasedAt().toString() : null,
                         card.getArtist(),
                         card.getCollectorNumber(),
                         card.getEdhrecRank(),
-                        cardService.resolveDisplayOracleText(card.getOracleText(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
-                        cardService.resolveDisplayFlavorText(card.getFlavorText(), card.getFaceRawJson() != null ? card.getFaceRawJson() : card.getRawJson()),
+                        card.getOracleText(),
+                        card.getFlavorText(),
                         card.getPower() != null && card.getToughness() != null ? card.getPower() + "/" + card.getToughness() : null
                 ));
 
@@ -331,7 +345,19 @@ public class CardController {
         return colors;
     }
 
+    private static String resolveDisplayName(String defaultName, String rawJson) {
+        String localized = extractStringFromRawJson(rawJson, "printed_name");
+        return (localized != null && !localized.isBlank()) ? localized : defaultName;
+    }
 
+    private static String resolveDisplayType(String defaultTypeLine, String rawJson) {
+        String localized = extractStringFromRawJson(rawJson, "printed_type_line");
+        if (localized != null && !localized.isBlank()) {
+            return localized;
+        }
+        // Fallback: traducción dinámica al español
+        return CardService.translateTypeLine(defaultTypeLine);
+    }
 
     private static String resolveDisplayManaCost(String defaultManaCost, String rawJson) {
         String localized = extractStringFromRawJson(rawJson, "printed_mana_cost");
@@ -357,6 +383,7 @@ public class CardController {
 
     static class CardSearchResponse {
         private Long id;
+        private java.util.UUID scryfallId;
         private String name;
         private String manaCost;
         private String type;
@@ -374,9 +401,10 @@ public class CardController {
         private String flavorText;
         private String powerToughness;
 
-        public CardSearchResponse(Long id, String name, String manaCost, String type, String imageUrl, String backImageUrl, boolean doubleFaced, List<String> colors, String rarity,
+        public CardSearchResponse(Long id, java.util.UUID scryfallId, String name, String manaCost, String type, String imageUrl, String backImageUrl, boolean doubleFaced, List<String> colors, String rarity,
                                   String setName, String releasedAt, String artist, String collectorNumber, Integer edhrecRank, String oracleText, String flavorText, String powerToughness) {
             this.id = id;
+            this.scryfallId = scryfallId;
             this.name = name;
             this.manaCost = manaCost;
             this.type = type;
@@ -396,6 +424,9 @@ public class CardController {
         }
 
         // Getters and Setters
+        public java.util.UUID getScryfallId() { return scryfallId; }
+        public void setScryfallId(java.util.UUID scryfallId) { this.scryfallId = scryfallId; }
+        
         public String getSetName() { return setName; }
         public String getReleasedAt() { return releasedAt; }
         public String getArtist() { return artist; }

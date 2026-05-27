@@ -2,6 +2,7 @@ package com.magicvs.backend.service;
 
 import com.magicvs.backend.model.News;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Profile;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -20,6 +21,7 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 
 @Service
+@Profile("worker")
 @Slf4j
 public class NewsScrapingService {
 
@@ -85,6 +87,7 @@ public class NewsScrapingService {
             }
         } catch (Exception e) {
             log.error("Failed to scrape MTGGoldfish: {}", e.getMessage());
+            throw new TransientIngestionException("Failed to scrape MTGGoldfish news", e);
         }
         return newsList;
     }

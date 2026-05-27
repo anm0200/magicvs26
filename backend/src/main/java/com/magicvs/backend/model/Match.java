@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "matches")
+@Table(name = "arena_matches")
 public class Match {
 
     @Id
@@ -24,9 +24,16 @@ public class Match {
     private Long winnerId;
 
     // --- LÓGICA DE ELO ---
+    @Column(name = "elo_before_p1")
     private Integer eloBeforeP1;
+
+    @Column(name = "elo_before_p2")
     private Integer eloBeforeP2;
+
+    @Column(name = "elo_after_p1")
     private Integer eloAfterP1;
+
+    @Column(name = "elo_after_p2")
     private Integer eloAfterP2;
     private Integer eloChange; // Diferencia neta opcional
 
@@ -76,6 +83,18 @@ public class Match {
         if (this.status == null) {
             this.status = MatchStatus.WAITING;
         }
+        if (this.eloBeforeP1 == null) {
+            this.eloBeforeP1 = 0;
+        }
+        if (this.eloBeforeP2 == null) {
+            this.eloBeforeP2 = 0;
+        }
+        if (this.eloAfterP1 == null) {
+            this.eloAfterP1 = 0;
+        }
+        if (this.eloAfterP2 == null) {
+            this.eloAfterP2 = 0;
+        }
     }
 
     public Long getId() { return id; }
@@ -90,16 +109,16 @@ public class Match {
     public Long getWinnerId() { return winnerId; }
     public void setWinnerId(Long winnerId) { this.winnerId = winnerId; }
 
-    public Integer getEloBeforeP1() { return eloBeforeP1; }
+    public int getEloBeforeP1() { return eloBeforeP1 != null ? eloBeforeP1 : 0; }
     public void setEloBeforeP1(Integer eloBeforeP1) { this.eloBeforeP1 = eloBeforeP1; }
 
-    public Integer getEloBeforeP2() { return eloBeforeP2; }
+    public int getEloBeforeP2() { return eloBeforeP2 != null ? eloBeforeP2 : 0; }
     public void setEloBeforeP2(Integer eloBeforeP2) { this.eloBeforeP2 = eloBeforeP2; }
 
-    public Integer getEloAfterP1() { return eloAfterP1; }
+    public int getEloAfterP1() { return eloAfterP1 != null ? eloAfterP1 : 0; }
     public void setEloAfterP1(Integer eloAfterP1) { this.eloAfterP1 = eloAfterP1; }
 
-    public Integer getEloAfterP2() { return eloAfterP2; }
+    public int getEloAfterP2() { return eloAfterP2 != null ? eloAfterP2 : 0; }
     public void setEloAfterP2(Integer eloAfterP2) { this.eloAfterP2 = eloAfterP2; }
 
     public Integer getEloChange() { return eloChange; }

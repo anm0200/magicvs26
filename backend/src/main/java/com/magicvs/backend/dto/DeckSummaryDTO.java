@@ -12,8 +12,10 @@ public class DeckSummaryDTO {
     private LocalDateTime updatedAt;
     private Boolean isPublic;
     private String mainImageUrl;
-    private List<String> cardNames;
     private Double averageCmc;
+    private Double totalManaCost;
+    private List<String> cardNames;
+    private List<String> colorIdentity;
 
     public DeckSummaryDTO() {
     }
@@ -84,14 +86,6 @@ public class DeckSummaryDTO {
         this.mainImageUrl = mainImageUrl;
     }
 
-    public List<String> getCardNames() {
-        return cardNames;
-    }
-
-    public void setCardNames(List<String> cardNames) {
-        this.cardNames = cardNames;
-    }
-
     public Double getAverageCmc() {
         return averageCmc;
     }
@@ -100,7 +94,21 @@ public class DeckSummaryDTO {
         this.averageCmc = averageCmc;
     }
 
-    private List<String> colorIdentity;
+    public Double getTotalManaCost() {
+        return totalManaCost;
+    }
+
+    public void setTotalManaCost(Double totalManaCost) {
+        this.totalManaCost = totalManaCost;
+    }
+
+    public List<String> getCardNames() {
+        return cardNames;
+    }
+
+    public void setCardNames(List<String> cardNames) {
+        this.cardNames = cardNames;
+    }
 
     public List<String> getColorIdentity() {
         return colorIdentity;

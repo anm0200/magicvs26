@@ -15,6 +15,7 @@ public interface CardRepository extends JpaRepository<Card, Long> {
 
     interface CardSearchProjection {
         Long getId();
+        UUID getScryfallId();
         String getName();
         String getManaCost();
         String getTypeLine();
@@ -39,6 +40,13 @@ public interface CardRepository extends JpaRepository<Card, Long> {
         String getToughness();
     }
 
+    interface CardImageProjection {
+        UUID getScryfallId();
+        String getNormalImageUri();
+        String getFaceNormalImageUri();
+        String getBackFaceNormalImageUri();
+    }
+
     Optional<Card> findByScryfallId(UUID scryfallId);
 
     List<Card> findByNameContainingIgnoreCase(String name);
@@ -46,7 +54,29 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     Page<Card> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     @Query("""
+        SELECT c.scryfallId AS scryfallId,
+               c.normalImageUri AS normalImageUri,
+               firstFace.normalImageUri AS faceNormalImageUri,
+               lastFace.normalImageUri AS backFaceNormalImageUri
+        FROM Card c
+        LEFT JOIN c.faces firstFace
+            ON firstFace.faceOrder = (
+                SELECT MIN(f1.faceOrder)
+                FROM CardFace f1
+                WHERE f1.card = c
+            )
+        LEFT JOIN c.faces lastFace
+            ON lastFace.faceOrder = (
+                SELECT MAX(f2.faceOrder)
+                FROM CardFace f2
+                WHERE f2.card = c
+            )
+        """)
+    List<CardImageProjection> findAllImageUris();
+
+    @Query("""
         SELECT c.id AS id,
+               c.scryfallId AS scryfallId,
                c.name AS name,
                c.manaCost AS manaCost,
                c.typeLine AS typeLine,
@@ -66,7 +96,6 @@ public interface CardRepository extends JpaRepository<Card, Long> {
                c.edhrecRank AS edhrecRank,
                c.oracleText AS oracleText,
                c.flavorText AS flavorText,
-               firstFace.rawJson AS faceRawJson,
                c.power AS power,
                c.toughness AS toughness
         FROM Card c
@@ -110,6 +139,10 @@ public interface CardRepository extends JpaRepository<Card, Long> {
                 :favoritesOnly = FALSE
                 OR c.id IN (SELECT fc.card.id FROM FavoriteCard fc WHERE fc.user.id = :userId)
                )
+           AND (
+                :collectionOnly = FALSE
+                OR c.id IN (SELECT uc.card.id FROM UserCard uc WHERE uc.user.id = :userId)
+               )
         """)
     Page<CardSearchProjection> searchProjectedByNameAndFilters(
         @Param("name") String name,
@@ -123,6 +156,7 @@ public interface CardRepository extends JpaRepository<Card, Long> {
         @Param("typeFilter") String typeFilter,
         @Param("rarityFilter") String rarityFilter,
         @Param("favoritesOnly") boolean favoritesOnly,
+        @Param("collectionOnly") boolean collectionOnly,
         @Param("userId") Long userId,
         Pageable pageable
     );
@@ -135,4 +169,13 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     Optional<Card> findFirstByNameIgnoreCaseAndLang(String name, String lang);
 
     boolean existsByScryfallId(UUID scryfallId);
+
+    @Query(value = "SELECT * FROM cards WHERE LOWER(rarity) = 'common' ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
+    List<Card> findRandomCommons(@Param("limit") int limit);
+
+    @Query(value = "SELECT * FROM cards WHERE LOWER(rarity) = 'uncommon' ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
+    List<Card> findRandomUncommons(@Param("limit") int limit);
+
+    @Query(value = "SELECT * FROM cards WHERE LOWER(rarity) IN ('rare', 'mythic') ORDER BY RANDOM() LIMIT :limit", nativeQuery = true)
+    List<Card> findRandomRaresOrMythics(@Param("limit") int limit);
 }

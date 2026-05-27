@@ -6,6 +6,7 @@ import { PublicUser } from '../../../models/user.model';
 import { AvatarComponent } from '../../../shared/components/avatar/avatar.component';
 import { ToastService } from '../../../core/services/toast.service';
 import { FriendshipService } from '../../../core/services/friendship.service';
+import { BlockService } from '../../../core/services/block.service';
 import { ConfirmService } from '../../../core/services/confirm.service';
 
 @Component({
@@ -19,16 +20,18 @@ export class UserDirectoryComponent implements OnInit {
   private userService = inject(UserService);
   private toastService = inject(ToastService);
   private friendshipService = inject(FriendshipService);
+  private blockService = inject(BlockService);
   private confirmService = inject(ConfirmService);
 
   users = signal<PublicUser[]>([]);
+  blockedUserIds = signal<number[]>([]);
   isLoading = signal(true);
   hasError = signal(false);
   currentUserId = signal<number | null>(null);
 
   // Filters & Sorting
   searchTerm = signal('');
-  sortBy = signal<'username' | 'elo'>('elo');
+  sortBy = signal<'username' | 'elo' | 'puntos'>('puntos');
   sortOrder = signal<'asc' | 'desc'>('desc');
   
   // No longer using mock followedUsers set
@@ -36,10 +39,20 @@ export class UserDirectoryComponent implements OnInit {
   filteredUsers = computed(() => {
     let list = [...this.users()];
     const search = this.searchTerm().toLowerCase().trim();
+    const tagSearch = search.startsWith('#') ? search.slice(1).trim() : '';
 
     // Filter by search term
     if (search) {
-      list = list.filter(u => u.username.toLowerCase().includes(search));
+      list = list.filter(u => {
+        const username = u.username.toLowerCase();
+        const displayName = (u.displayName ?? '').toLowerCase();
+        const friendTag = (u.friendTag ?? '').toLowerCase();
+
+        const matchesName = username.includes(search) || displayName.includes(search);
+        const matchesFriendTag = tagSearch ? friendTag === tagSearch : false;
+
+        return matchesName || matchesFriendTag;
+      });
     }
 
     // Sort users
@@ -47,14 +60,18 @@ export class UserDirectoryComponent implements OnInit {
       const field = this.sortBy();
       const order = this.sortOrder();
 
-      let valA = field === 'username' ? a.username.toLowerCase() : a.elo;
-      let valB = field === 'username' ? b.username.toLowerCase() : b.elo;
+      const valA = field === 'username'
+        ? a.username.toLowerCase()
+        : (field === 'elo' ? (a.elo ?? 0) : (a.achievementPoints ?? 0));
+      const valB = field === 'username'
+        ? b.username.toLowerCase()
+        : (field === 'elo' ? (b.elo ?? 0) : (b.achievementPoints ?? 0));
 
       if (valA < valB) return order === 'asc' ? -1 : 1;
       if (valA > valB) return order === 'asc' ? 1 : -1;
 
-      // Tie-breaker: sort by username ASC if ELO is the same
-      if (field === 'elo') {
+      // Tie-breaker: sort by username ASC for numeric fields
+      if (field !== 'username') {
         const nameA = a.username.toLowerCase();
         const nameB = b.username.toLowerCase();
         if (nameA < nameB) return -1;
@@ -69,6 +86,7 @@ export class UserDirectoryComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadUsers();
+    this.loadBlockedUsers();
     this.loadCurrentUserId();
   }
 
@@ -103,6 +121,61 @@ export class UserDirectoryComponent implements OnInit {
     });
   }
 
+  loadBlockedUsers(): void {
+    this.blockService.getBlockedUsers().subscribe({
+      next: (blockedUsers) => {
+        this.blockedUserIds.set(blockedUsers.map((user: any) => user.id));
+      },
+      error: (err) => {
+        console.error('Error loading blocked users:', err);
+      }
+    });
+  }
+
+  isBlocked(userId: number): boolean {
+    return this.blockedUserIds().includes(userId);
+  }
+
+  unblockUser(user: PublicUser, event: MouseEvent): void {
+    event.stopPropagation();
+
+    this.confirmService.confirm(`¿Estás seguro de que quieres desbloquear a ${user.displayName || user.username}?`).then((confirmed) => {
+      if (!confirmed) return;
+
+      this.blockService.unblockUser(user.id).subscribe({
+        next: () => {
+          this.toastService.show('Usuario desbloqueado correctamente', 'success');
+          this.loadBlockedUsers();
+          this.loadUsers();
+        },
+        error: (error) => {
+          console.error('Error unblocking user:', error);
+          this.toastService.show('Error al desbloquear usuario', 'error');
+        }
+      });
+    });
+  }
+
+  blockUser(user: PublicUser, event: MouseEvent): void {
+    event.stopPropagation();
+
+    this.confirmService.confirm(`¿Estás seguro de que quieres bloquear a ${user.displayName || user.username}? Esto eliminará la amistad si existe.`).then((confirmed) => {
+      if (!confirmed) return;
+
+      this.blockService.blockUser(user.id).subscribe({
+        next: () => {
+          this.toastService.show('Usuario bloqueado correctamente', 'success');
+          this.loadBlockedUsers();
+          this.loadUsers();
+        },
+        error: (error) => {
+          console.error('Error blocking user:', error);
+          this.toastService.show('Error al bloquear usuario', 'error');
+        }
+      });
+    });
+  }
+
   updateSearch(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.searchTerm.set(input.value);
@@ -114,7 +187,7 @@ export class UserDirectoryComponent implements OnInit {
 
   onSortChange(event: Event): void {
     const select = event.target as HTMLSelectElement;
-    this.sortBy.set(select.value as 'username' | 'elo');
+    this.sortBy.set(select.value as 'username' | 'elo' | 'puntos');
   }
 
   toggleFriendship(user: PublicUser): void {

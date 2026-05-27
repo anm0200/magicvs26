@@ -6,6 +6,7 @@ import com.magicvs.backend.service.LoginService;
 import com.magicvs.backend.service.AuthService;
 import com.magicvs.backend.service.AchievementService;
 import com.magicvs.backend.repository.RegistroRepository;
+import com.magicvs.backend.repository.UserAchievementRepository;
 import com.magicvs.backend.dto.UserDirectoryResponseDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,14 +27,16 @@ public class UserController {
     private final com.magicvs.backend.service.RegistrationVerificationService verificationService;
     private final com.magicvs.backend.service.FriendshipService friendshipService;
     private final AchievementService achievementService;
+    private final UserAchievementRepository userAchievementRepository;
 
-    public UserController(RegistroService registroService, 
-                          LoginService loginService, 
-                          AuthService authService, 
-                          RegistroRepository registroRepository, 
+    public UserController(RegistroService registroService,
+                          LoginService loginService,
+                          AuthService authService,
+                          RegistroRepository registroRepository,
                           com.magicvs.backend.service.RegistrationVerificationService verificationService,
                           com.magicvs.backend.service.FriendshipService friendshipService,
-                          AchievementService achievementService) {
+                          AchievementService achievementService,
+                          UserAchievementRepository userAchievementRepository) {
         this.registroService = registroService;
         this.loginService = loginService;
         this.authService = authService;
@@ -41,6 +44,7 @@ public class UserController {
         this.verificationService = verificationService;
         this.friendshipService = friendshipService;
         this.achievementService = achievementService;
+        this.userAchievementRepository = userAchievementRepository;
     }
 
     @GetMapping("/exists")
@@ -79,10 +83,71 @@ public class UserController {
                     } else {
                         dto.setFriendshipStatus("NONE");
                     }
+                    dto.setAchievementPoints(userAchievementRepository.sumAchievementPointsByUserId(u.getId()));
                     return dto;
                 })
                 .collect(Collectors.toList());
         return ResponseEntity.ok(users);
+    }
+
+    /**
+     * Obtiene la lista de amigos de un usuario con filtros opcionales.
+     */
+    @GetMapping("/{userId}/friends")
+    public ResponseEntity<List<UserDirectoryResponseDto>> getUserFriends(
+            @PathVariable Long userId,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) Boolean onlineOnly,
+            @RequestHeader(name = "Authorization", required = false) String authorization) {
+        
+        Long currentUserId = null;
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            currentUserId = authService.getUserId(authorization.substring(7)).orElse(null);
+        }
+        
+        // Obtener amigos (el servicio valida privacidad/bloqueos)
+        List<UserDirectoryResponseDto> friends = friendshipService.getFriendsOfUser(userId, currentUserId);
+        
+        // FILTRADO: Solo online si se solicita
+        if (Boolean.TRUE.equals(onlineOnly)) {
+            friends = friends.stream()
+                    .filter(UserDirectoryResponseDto::getIsOnline)
+                    .collect(Collectors.toList());
+        }
+        
+        // ORDENAMIENTO: Aplicar según criterio
+        String sortCriteria = sort != null ? sort.toLowerCase() : "none";
+        switch (sortCriteria) {
+            case "online":
+                friends.sort((a, b) -> Boolean.compare(b.getIsOnline(), a.getIsOnline()));
+                break;
+            case "recent":
+                friends.sort((a, b) -> {
+                    java.time.LocalDateTime aTime = a.getLastSeenAt();
+                    java.time.LocalDateTime bTime = b.getLastSeenAt();
+                    if (aTime == null) aTime = java.time.LocalDateTime.now();
+                    if (bTime == null) bTime = java.time.LocalDateTime.now();
+                    return bTime.compareTo(aTime);
+                });
+                break;
+            case "elo":
+                friends.sort((a, b) -> Integer.compare(
+                        b.getElo() != null ? b.getElo() : 0,
+                        a.getElo() != null ? a.getElo() : 0
+                ));
+                break;
+            // "none" o default: mantener orden original
+        }
+        
+        // LÍMITE: Restringir resultados si se solicita
+        if (limit != null && limit > 0) {
+            friends = friends.stream()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+        }
+        
+        return ResponseEntity.ok(friends);
     }
 
     // ---- Endpoints expuestos para Registro y Login ----

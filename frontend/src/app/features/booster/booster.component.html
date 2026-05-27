@@ -1,0 +1,87 @@
+<div class="container mx-auto p-4 md:p-8 min-h-screen text-white pt-32 lg:pt-40">
+  <div class="flex flex-col md:flex-row items-center justify-center relative mb-12 w-full">
+    <div class="w-full flex justify-center md:absolute md:left-4 lg:left-8 md:w-auto md:top-1/2 md:-translate-y-1/2 mb-6 md:mb-0">
+      <a routerLink="/profile" class="inline-flex items-center gap-2 px-4 py-2 bg-surface-container border border-outline-variant rounded-xl hover:border-primary transition-colors shadow-lg group">
+        <span class="material-symbols-outlined text-lg group-hover:-translate-x-1 transition-transform">arrow_back</span>
+        <span>Volver al perfil</span>
+      </a>
+    </div>
+    
+    <div class="text-center">
+      <h1 class="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-600 mb-4">
+        Abrir Sobre de Magic
+      </h1>
+      <p class="text-gray-400 text-lg">Obtén 14 cartas para añadir a tu colección personal.</p>
+    </div>
+  </div>
+  
+  <div class="text-center mb-12" [hidden]="openedCards.length > 0">
+    
+    <!-- Booster Pack Container -->
+    <div class="relative mx-auto mt-8 w-64 md:w-80 h-[380px] md:h-[480px] select-none"
+         (mousedown)="onStartDrag($event)" (touchstart)="onStartDrag($event)"
+         (mousemove)="onDrag($event)" (touchmove)="onDrag($event)" 
+         (mouseup)="onEndDrag()" (touchend)="onEndDrag()" (mouseleave)="onEndDrag()">
+      
+      <!-- Loading / Error states -->
+      <div *ngIf="modelLoading" class="absolute inset-0 flex items-center justify-center bg-gray-900/50 rounded-xl border border-white/10">
+        <span class="text-pink-400 animate-pulse">Cargando modelo 3D...</span>
+      </div>
+      <div *ngIf="modelError" class="absolute inset-0 flex items-center justify-center bg-red-900/50 rounded-xl border border-red-500/30 text-center p-4">
+        <span class="text-red-200">Error al cargar el sobre 3D. Verifica el archivo GLB.</span>
+      </div>
+
+      <!-- WebGL Canvas Container -->
+      <div #canvasContainer class="absolute inset-0 w-full h-full cursor-pointer transition-all duration-1000"
+           [class.opacity-0]="isPackOpened"
+           [class.scale-[0.8]]="isPackOpened">
+      </div>
+           
+      <!-- Click Hint Overlay -->
+      <div *ngIf="!modelLoading && !modelError && !isPackOpened" class="absolute bottom-4 left-0 w-full text-center pointer-events-none">
+         <div class="text-xs font-bold tracking-widest uppercase transition-colors"
+              [ngClass]="{'text-white/40': clickCount === 0, 'text-yellow-400/80': clickCount === 1, 'text-red-500 animate-pulse': clickCount >= 2}">
+            <span *ngIf="clickCount === 0">Haz clic 3 veces</span>
+            <span *ngIf="clickCount === 1">¡Un poco más!</span>
+            <span *ngIf="clickCount === 2">¡A punto de romperse!</span>
+         </div>
+      </div>
+    </div>
+    
+    <p *ngIf="isOpening && !openedCards.length" class="text-pink-400 animate-pulse mt-8 font-bold text-xl">
+      Descubriendo cartas...
+    </p>
+  </div>
+
+  <div *ngIf="error" class="bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg text-center max-w-2xl mx-auto mb-8">
+    {{ error }}
+  </div>
+
+  <div *ngIf="openedCards.length > 0" class="mt-8 animate-fade-in-up">
+    <div class="flex flex-col md:flex-row items-center justify-between mb-8">
+      <h2 class="text-2xl font-bold text-center md:text-left mb-4 md:mb-0">¡Cartas Obtenidas!</h2>
+      <button (click)="resetPack()" class="px-6 py-2 bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold rounded-full shadow-lg hover:shadow-pink-500/50 transition-all transform hover:-translate-y-1 flex items-center gap-2">
+        <span class="material-symbols-outlined text-sm">refresh</span>
+        Abrir otro sobre
+      </button>
+    </div>
+    
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
+      <div *ngFor="let card of openedCards; let i = index" 
+           class="relative group aspect-[2.5/3.5] bg-gray-800 rounded-xl overflow-hidden shadow-lg animate-fade-in transition-transform transform hover:scale-110 hover:z-10"
+           [style.animation-delay]="(i * 100) + 'ms'">
+        
+        <img [src]="card.imageUrl" [alt]="card.name" class="w-full h-full object-cover">
+        
+        <!-- Overlay on hover -->
+        <div class="absolute inset-0 bg-black bg-opacity-70 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+          <p class="font-bold text-sm truncate">{{ card.name }}</p>
+          <p class="text-xs text-gray-300 truncate">{{ card.typeLine }}</p>
+          <p class="text-xs uppercase tracking-wider mt-1" [ngClass]="getRarityClass(card.rarity)">
+            {{ translateRarity(card.rarity) }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

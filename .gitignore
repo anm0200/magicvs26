@@ -59,3 +59,8 @@ rulings-20260521090039.json
 /scratch
 /scripts
 opencode.json
+
+# Card images
+frontend/src/assets/cards/*
+!frontend/src/assets/cards/.gitkeep
+
