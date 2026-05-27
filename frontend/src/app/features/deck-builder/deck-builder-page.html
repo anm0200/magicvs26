@@ -248,5 +248,12 @@
         <app-deck-search-panel (cardSelected)="onCardSelected($event)"></app-deck-search-panel>
       </main>
     </div>
+
+    @if (showingPublicDecks) {
+      <app-public-decks-modal
+        (close)="showingPublicDecks = false"
+        (deckCopied)="onPublicDeckCopied($event)"
+      ></app-public-decks-modal>
+    }
   </div>
 </div>
