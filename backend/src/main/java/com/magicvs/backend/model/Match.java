@@ -25,16 +25,16 @@ public class Match {
 
     // --- LÓGICA DE ELO ---
     @Column(name = "elo_before_p1")
-    private int eloBeforeP1;
+    private Integer eloBeforeP1;
 
     @Column(name = "elo_before_p2")
-    private int eloBeforeP2;
+    private Integer eloBeforeP2;
 
     @Column(name = "elo_after_p1")
-    private int eloAfterP1;
+    private Integer eloAfterP1;
 
     @Column(name = "elo_after_p2")
-    private int eloAfterP2;
+    private Integer eloAfterP2;
     private Integer eloChange; // Diferencia neta opcional
 
     // --- ESTADO Y FORMATO ---
