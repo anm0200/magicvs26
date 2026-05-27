@@ -122,18 +122,16 @@
                   </div>
                   <div class="flex flex-col">
                     <span class="text-[9px] font-bold uppercase tracking-widest text-zinc-600">Identidad</span>
-                    <div class="mt-1 flex gap-1">
+                    <div class="mt-1 flex flex-wrap items-center gap-1">
                       @if (deckColors(deck).length > 0) {
                         @for (color of deckColors(deck); track color) {
-                          <div class="h-2.5 w-2.5 rounded-full border border-white/10"
-                               [title]="color"
-                               [ngClass]="{
-                                  'bg-blue-600': color === 'U',
-                                  'bg-red-600': color === 'R',
-                                  'bg-slate-50 border-slate-300': color === 'W',
-                                  'bg-neutral-900 border-neutral-700': color === 'B',
-                                  'bg-emerald-600': color === 'G'
-                               }"></div>
+                          <span class="flex h-4 w-4 items-center justify-center" [title]="color">
+                            <img
+                              [src]="'https://svgs.scryfall.io/card-symbols/' + color + '.svg'"
+                              [alt]="color"
+                              class="h-full w-full"
+                            />
+                          </span>
                         }
                       } @else {
                         <span class="text-[10px] text-zinc-700">N/A</span>

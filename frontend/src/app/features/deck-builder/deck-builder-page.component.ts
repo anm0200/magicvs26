@@ -5,11 +5,13 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DeckBuilderService, Card, DeckCard } from '../../core/services/deck-builder.service';
 import { DeckSearchPanelComponent } from './deck-search-panel.component';
+import { PublicDecksModalComponent } from './public-decks-modal.component';
+import { ManaCostPipe } from '../../shared/pipes/mana-cost.pipe';
 
 @Component({
   selector: 'app-deck-builder-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, DeckSearchPanelComponent],
+  imports: [CommonModule, FormsModule, RouterModule, DeckSearchPanelComponent, PublicDecksModalComponent, ManaCostPipe],
   templateUrl: './deck-builder-page.html',
   styleUrls: ['./deck-builder-page.scss']
 })
@@ -38,6 +40,15 @@ export class DeckBuilderPageComponent {
   notificationType: 'success' | 'error' | 'info' = 'success';
   private notificationTimer?: number;
   private flippedDeckCardIds = new Set<number>();
+  showPublicDecks = false;
+
+  get showingPublicDecks(): boolean {
+    return this.showPublicDecks;
+  }
+
+  set showingPublicDecks(value: boolean) {
+    this.showPublicDecks = value;
+  }
 
   readonly deckFormatLabel = 'Standard';
 
@@ -248,6 +259,11 @@ export class DeckBuilderPageComponent {
     }, 3200);
   }
 
+  colorNameToCode(name: string): string {
+    const map: Record<string, string> = { white: 'W', blue: 'U', black: 'B', red: 'R', green: 'G', colorless: 'C' };
+    return map[name.toLowerCase()] ?? name.toUpperCase().charAt(0);
+  }
+
   getColorClass(color: string): string {
     const colorMap: { [key: string]: string } = {
       white: 'bg-amber-100/10 text-amber-200 border border-amber-200/20',
@@ -315,6 +331,18 @@ export class DeckBuilderPageComponent {
         this.showNotification(msg, 'error');
       }
     });
+  }
+
+  openPublicDecksModal(): void {
+    this.showPublicDecks = true;
+  }
+
+  onPublicDeckCopied(event: { deckId: number; deckName: string }): void {
+    this.showPublicDecks = false;
+    this.showNotification('¡Mazo clonado con éxito! Ahora es tuyo.', 'success');
+    if (event?.deckId) {
+      this.router.navigate(['/decks', event.deckId, 'edit']);
+    }
   }
 
   exportDeckToFile(): void {

@@ -31,7 +31,11 @@ public ResponseEntity<DeckResponseDTO> createDeck(
     @RequestHeader(name = "Authorization") String authorization, 
     @RequestBody CreateDeckDTO deckDTO
 ) {
-    return ResponseEntity.status(HttpStatus.CREATED).body(deckService.createDeck(authorization, deckDTO));
+    try {
+        return ResponseEntity.status(HttpStatus.CREATED).body(deckService.createDeck(authorization, deckDTO));
+    } catch (IllegalArgumentException ex) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
 }
 
     @PutMapping("/{deckId}")
@@ -69,6 +73,11 @@ public ResponseEntity<DeckResponseDTO> createDeck(
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<DeckSummaryDTO>> getUserDecks(@PathVariable Long userId) {
         return ResponseEntity.ok(deckService.getUserDecks(userId));
+    }
+
+    @GetMapping("/public")
+    public ResponseEntity<List<DeckSummaryDTO>> getPublicDecks() {
+        return ResponseEntity.ok(deckService.getPublicDecks());
     }
 
     @DeleteMapping("/{deckId}")
