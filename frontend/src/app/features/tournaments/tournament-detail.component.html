@@ -1,0 +1,431 @@
+<section
+  class="arena-root relative h-screen overflow-hidden bg-[#060e20] font-body text-on-surface"
+  [style.--arena-accent]="activeArenaAccent()"
+>
+  <div class="arena-bg pointer-events-none absolute inset-0"></div>
+
+  @if (isLoading()) {
+    <div class="relative z-10 grid h-full place-items-center pt-20">
+      <div class="rounded-2xl bg-surface-container/50 px-8 py-6 text-center shadow-[0_24px_48px_rgba(5,9,18,.34)] backdrop-blur-2xl">
+        <p class="font-headline text-xs uppercase tracking-[.24em] text-secondary">Inicializando arena</p>
+        <p class="mt-3 text-sm text-on-surface/62">Cargando bracket...</p>
+      </div>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="relative z-10 grid h-full place-items-center pt-20">
+      <div class="rounded-2xl bg-rose-500/10 px-8 py-6 text-center text-rose-100 shadow-[0_24px_48px_rgba(5,9,18,.34)] backdrop-blur-2xl">
+        {{ errorMessage() }}
+      </div>
+    </div>
+  } @else if (tournament(); as t) {
+    <a
+      routerLink="/tournaments"
+      class="arena-back-btn absolute left-5 top-[5.25rem] z-40 inline-flex items-center gap-2 rounded-xl bg-surface-container/55 px-4 py-2 font-body text-xs font-black uppercase tracking-[.18em] text-secondary shadow-[0_18px_36px_rgba(5,9,18,.32)] backdrop-blur-2xl transition hover:-translate-y-0.5 hover:bg-surface-container-high/70 hover:text-white"
+      aria-label="Volver al hub de torneos"
+    >
+      <span class="material-symbols-outlined text-base">arrow_back</span>
+      Volver
+    </a>
+
+    <div
+      class="arena-shell relative z-10 grid h-full gap-4 px-4 pb-4 pt-24 lg:px-5 lg:pb-5"
+      [class.command-collapsed]="commandPanelCollapsed()"
+      [class.context-collapsed]="contextPanelCollapsed()"
+    >
+      <aside class="glass-hud command-panel min-h-0 rounded-2xl p-4 shadow-[0_24px_60px_rgba(5,9,18,.42)]">
+        <div class="flex items-center justify-between">
+          <a routerLink="/tournaments" class="hud-kicker" [class.sr-only]="commandPanelCollapsed()">Torneos</a>
+          <button class="hud-icon" type="button" (click)="toggleCommandPanel()" aria-label="Alternar panel de torneo">
+            <span class="material-symbols-outlined text-base">
+              {{ commandPanelCollapsed() ? 'left_panel_open' : 'left_panel_close' }}
+            </span>
+          </button>
+        </div>
+
+        @if (!commandPanelCollapsed()) {
+          <h1 class="mt-5 font-headline text-5xl font-bold leading-none tracking-tight text-white">{{ t.name }}</h1>
+          <p class="mt-3 text-sm leading-6 text-on-surface/68">{{ t.description }}</p>
+
+          <div class="mt-6 grid grid-cols-2 gap-2">
+            <div class="rounded-xl bg-surface-container/40 p-3">
+              <p class="font-headline text-2xl font-bold text-secondary">{{ t.participantCount }}/{{ t.maxPlayers }}</p>
+              <p class="mt-1 text-[10px] uppercase tracking-[.18em] text-on-surface/45">players</p>
+            </div>
+            <div class="rounded-xl bg-surface-container/40 p-3">
+              <p class="font-headline text-2xl font-bold text-primary">{{ t.currentRound || 0 }}</p>
+              <p class="mt-1 text-[10px] uppercase tracking-[.18em] text-on-surface/45">ronda</p>
+            </div>
+            <div class="rounded-xl bg-surface-container/40 p-3">
+              <p class="font-headline text-2xl font-bold text-tertiary">{{ liveMatches().length }}</p>
+              <p class="mt-1 text-[10px] uppercase tracking-[.18em] text-on-surface/45">live</p>
+            </div>
+            <div class="rounded-xl bg-surface-container/40 p-3">
+              <p class="font-headline text-2xl font-bold text-white">{{ finishedMatches().length }}</p>
+              <p class="mt-1 text-[10px] uppercase tracking-[.18em] text-on-surface/45">cerrados</p>
+            </div>
+          </div>
+
+          <div class="mt-5 rounded-xl bg-surface-container/35 p-4">
+            <p class="hud-kicker">Estado</p>
+            <p class="mt-2 font-headline text-lg font-bold text-white">{{ statusPill(t.status) }}</p>
+            @if (t.winnerUserId) {
+              <p class="mt-2 font-headline text-2xl font-bold tracking-tight text-tertiary">{{ userName(t.winnerUserId) }}</p>
+            }
+          </div>
+
+          <p class="mt-5 text-xs leading-5 text-on-surface/50">
+            Arrastra el lienzo para navegar. Usa la rueda para hacer zoom. Las rutas brillantes revelan tu camino o el del jugador inspeccionado.
+          </p>
+        } @else {
+          <div class="mt-8 flex h-[calc(100%-4rem)] flex-col items-center gap-4">
+            <span class="hud-rail-label">Lobby</span>
+            <span class="font-headline text-xl font-bold text-secondary">{{ t.participantCount }}</span>
+            <span class="font-headline text-xl font-bold text-primary">{{ liveMatches().length }}</span>
+          </div>
+        }
+      </aside>
+
+      <main class="arena-stage relative min-h-0 min-w-0 overflow-hidden rounded-[1.75rem]">
+        <div class="absolute left-5 top-4 z-30 flex flex-wrap items-center gap-3">
+          <span class="rounded-full bg-surface-container/55 px-4 py-2 font-headline text-xs font-bold uppercase tracking-[.22em] text-secondary backdrop-blur-2xl">
+            Bracket Command
+          </span>
+          <span class="font-headline text-xs text-on-surface/52">{{ statusPill(t.status) }}</span>
+        </div>
+
+        @if (bracketVm().leftRounds.length === 0 && !bracketVm().finalMatch) {
+          <div class="grid h-full place-items-center px-6">
+            <div class="max-w-md rounded-2xl bg-surface-container/50 p-8 text-center shadow-[0_24px_48px_rgba(5,9,18,.34)] backdrop-blur-2xl">
+              <p class="font-headline text-4xl font-bold tracking-tight text-white">Lobby en espera</p>
+              <p class="mt-3 text-sm leading-6 text-on-surface/62">Aún no hay partidas generadas. La arena abrirá el bracket cuando el torneo active sus emparejamientos.</p>
+            </div>
+          </div>
+        } @else {
+          <div
+            class="bracket-viewport no-scrollbar"
+            (wheel)="onViewportWheel($event)"
+            (pointerdown)="onCanvasPointerDown($event)"
+            (pointermove)="onCanvasPointerMove($event)"
+            (pointerup)="onCanvasPointerUp($event)"
+            (pointercancel)="onCanvasPointerUp($event)"
+            [class.grabbing]="isPanning()"
+          >
+            <div
+              class="bracket-canvas"
+              [style.width.px]="bracketVm().width"
+              [style.height.px]="bracketVm().height"
+              [style.transform]="'translate(' + panX() + 'px,' + panY() + 'px) scale(' + zoom() + ')'"
+            >
+              <svg class="connector-layer" [attr.width]="bracketVm().width" [attr.height]="bracketVm().height">
+                @for (edge of bracketVm().edges; track edge.id) {
+                  <path
+                    class="connector-base"
+                    [class.connector-glow]="edge.completed || isEdgeActive(edge)"
+                    [class.connector-live]="edge.live"
+                    [attr.d]="edge.path"
+                    fill="none"
+                  ></path>
+                }
+              </svg>
+
+              @for (round of bracketVm().leftRounds; track 'L'+round.round) {
+                <div class="round-title" [style.left.px]="round.columnX" [style.top.px]="8">
+                  {{ round.title }}
+                </div>
+
+                @for (layout of round.matches; track 'L'+layout.match.id) {
+                  <article
+                    class="match-card"
+                    [style.left.px]="layout.cardX"
+                    [style.top.px]="layout.cardY"
+                    [style.height.px]="layout.cardHeight"
+                    [class.path-active]="isMatchPathActive(layout.match.id)"
+                    [class.live]="isPlaying(layout.match)"
+                  >
+                    <div class="match-header">
+                      <span class="ui-label">Seed {{ layout.match.matchNumber }}</span>
+                      <div class="match-header-actions">
+                        <span class="status-chip">{{ matchStatusLabel(layout.match.status) }}</span>
+                        @if (canShowMatchAction(layout.match)) {
+                          <button
+                            class="match-action"
+                            type="button"
+                            [class.waiting]="currentUserAccepted(layout.match) && !layout.match.battleMatchId"
+                            [disabled]="isMatchActionDisabled(layout.match)"
+                            (pointerdown)="$event.stopPropagation()"
+                            (click)="$event.stopPropagation(); acceptTournamentMatch(layout.match)"
+                          >
+                            {{ matchActionLabel(layout.match) }}
+                          </button>
+                        }
+                      </div>
+                    </div>
+
+                    @if (isPlaying(layout.match)) {
+                      <div class="live-pill" aria-label="Partido en vivo">
+                        <span class="dot"></span>
+                        LIVE
+                      </div>
+                    }
+
+                    <div
+                      class="player-row group/player"
+                      [class.current-user]="isCurrentUser(layout.match.player1Id)"
+                      [class.winner]="isWinner(layout.match, layout.match.player1Id)"
+                      [class.loser]="isLoser(layout.match, layout.match.player1Id)"
+                      [class.dimmed]="isDimmedByHover(layout.match, layout.match.player1Id)"
+                      (mouseenter)="setHoveredPlayer(layout.match.player1Id)"
+                      (mouseleave)="setHoveredPlayer(null)"
+                    >
+                      <div class="player-main">
+                        <span class="avatar">{{ userInitials(layout.match.player1Id) }}</span>
+                        <span class="name">{{ userName(layout.match.player1Id) }}</span>
+                      </div>
+                      <span class="stat-badge">{{ rowBadge(layout.match, layout.match.player1Id) }}</span>
+                      @if (layout.match.player1Id && canReportForWinner(layout.match, layout.match.player1Id)) {
+                        <button class="win-btn" type="button" (click)="reportWin(layout.match.id, layout.match.player1Id)">Gana</button>
+                      }
+                      <span class="player-tooltip">
+                        {{ userDeckName(layout.match.player1Id) }} · {{ participantRecord(layout.match.player1Id) }}
+                      </span>
+                    </div>
+
+                    <div
+                      class="player-row group/player"
+                      [class.current-user]="isCurrentUser(layout.match.player2Id)"
+                      [class.winner]="isWinner(layout.match, layout.match.player2Id)"
+                      [class.loser]="isLoser(layout.match, layout.match.player2Id)"
+                      [class.dimmed]="isDimmedByHover(layout.match, layout.match.player2Id)"
+                      (mouseenter)="setHoveredPlayer(layout.match.player2Id)"
+                      (mouseleave)="setHoveredPlayer(null)"
+                    >
+                      <div class="player-main">
+                        <span class="avatar">{{ userInitials(layout.match.player2Id) }}</span>
+                        <span class="name">{{ userName(layout.match.player2Id) }}</span>
+                      </div>
+                      <span class="stat-badge">{{ rowBadge(layout.match, layout.match.player2Id) }}</span>
+                      @if (layout.match.player2Id && canReportForWinner(layout.match, layout.match.player2Id)) {
+                        <button class="win-btn" type="button" (click)="reportWin(layout.match.id, layout.match.player2Id)">Gana</button>
+                      }
+                      <span class="player-tooltip">
+                        {{ userDeckName(layout.match.player2Id) }} · {{ participantRecord(layout.match.player2Id) }}
+                      </span>
+                    </div>
+                  </article>
+                }
+              }
+
+              @for (round of bracketVm().rightRounds; track 'R'+round.round) {
+                <div class="round-title right" [style.left.px]="round.columnX + 200" [style.top.px]="8">
+                  {{ round.title }}
+                </div>
+
+                @for (layout of round.matches; track 'R'+layout.match.id) {
+                  <article
+                    class="match-card mirrored"
+                    [style.left.px]="layout.cardX"
+                    [style.top.px]="layout.cardY"
+                    [style.height.px]="layout.cardHeight"
+                    [class.path-active]="isMatchPathActive(layout.match.id)"
+                    [class.live]="isPlaying(layout.match)"
+                  >
+                    <div class="match-header">
+                      <div class="match-header-actions">
+                        @if (canShowMatchAction(layout.match)) {
+                          <button
+                            class="match-action"
+                            type="button"
+                            [class.waiting]="currentUserAccepted(layout.match) && !layout.match.battleMatchId"
+                            [disabled]="isMatchActionDisabled(layout.match)"
+                            (pointerdown)="$event.stopPropagation()"
+                            (click)="$event.stopPropagation(); acceptTournamentMatch(layout.match)"
+                          >
+                            {{ matchActionLabel(layout.match) }}
+                          </button>
+                        }
+                        <span class="status-chip">{{ matchStatusLabel(layout.match.status) }}</span>
+                      </div>
+                      <span class="ui-label">Seed {{ layout.match.matchNumber }}</span>
+                    </div>
+
+                    @if (isPlaying(layout.match)) {
+                      <div class="live-pill" aria-label="Partido en vivo">
+                        <span class="dot"></span>
+                        LIVE
+                      </div>
+                    }
+
+                    <div
+                      class="player-row group/player"
+                      [class.current-user]="isCurrentUser(layout.match.player1Id)"
+                      [class.winner]="isWinner(layout.match, layout.match.player1Id)"
+                      [class.loser]="isLoser(layout.match, layout.match.player1Id)"
+                      [class.dimmed]="isDimmedByHover(layout.match, layout.match.player1Id)"
+                      (mouseenter)="setHoveredPlayer(layout.match.player1Id)"
+                      (mouseleave)="setHoveredPlayer(null)"
+                    >
+                      <span class="stat-badge">{{ rowBadge(layout.match, layout.match.player1Id) }}</span>
+                      @if (layout.match.player1Id && canReportForWinner(layout.match, layout.match.player1Id)) {
+                        <button class="win-btn" type="button" (click)="reportWin(layout.match.id, layout.match.player1Id)">Gana</button>
+                      }
+                      <div class="player-main">
+                        <span class="name">{{ userName(layout.match.player1Id) }}</span>
+                        <span class="avatar">{{ userInitials(layout.match.player1Id) }}</span>
+                      </div>
+                      <span class="player-tooltip right-side">
+                        {{ userDeckName(layout.match.player1Id) }} · {{ participantRecord(layout.match.player1Id) }}
+                      </span>
+                    </div>
+
+                    <div
+                      class="player-row group/player"
+                      [class.current-user]="isCurrentUser(layout.match.player2Id)"
+                      [class.winner]="isWinner(layout.match, layout.match.player2Id)"
+                      [class.loser]="isLoser(layout.match, layout.match.player2Id)"
+                      [class.dimmed]="isDimmedByHover(layout.match, layout.match.player2Id)"
+                      (mouseenter)="setHoveredPlayer(layout.match.player2Id)"
+                      (mouseleave)="setHoveredPlayer(null)"
+                    >
+                      <span class="stat-badge">{{ rowBadge(layout.match, layout.match.player2Id) }}</span>
+                      @if (layout.match.player2Id && canReportForWinner(layout.match, layout.match.player2Id)) {
+                        <button class="win-btn" type="button" (click)="reportWin(layout.match.id, layout.match.player2Id)">Gana</button>
+                      }
+                      <div class="player-main">
+                        <span class="name">{{ userName(layout.match.player2Id) }}</span>
+                        <span class="avatar">{{ userInitials(layout.match.player2Id) }}</span>
+                      </div>
+                      <span class="player-tooltip right-side">
+                        {{ userDeckName(layout.match.player2Id) }} · {{ participantRecord(layout.match.player2Id) }}
+                      </span>
+                    </div>
+                  </article>
+                }
+              }
+
+              @if (bracketVm().finalMatch; as finalLayout) {
+                <article
+                  class="match-card final"
+                  [style.left.px]="finalLayout.cardX"
+                  [style.top.px]="finalLayout.cardY"
+                  [style.height.px]="finalLayout.cardHeight"
+                  [class.path-active]="isMatchPathActive(finalLayout.match.id)"
+                  [class.live]="isPlaying(finalLayout.match)"
+                >
+                  <div class="match-header">
+                    <span class="ui-label">Gran Final</span>
+                    <div class="match-header-actions">
+                      <span class="status-chip">{{ matchStatusLabel(finalLayout.match.status) }}</span>
+                      @if (canShowMatchAction(finalLayout.match)) {
+                        <button
+                          class="match-action"
+                          type="button"
+                          [class.waiting]="currentUserAccepted(finalLayout.match) && !finalLayout.match.battleMatchId"
+                          [disabled]="isMatchActionDisabled(finalLayout.match)"
+                          (pointerdown)="$event.stopPropagation()"
+                          (click)="$event.stopPropagation(); acceptTournamentMatch(finalLayout.match)"
+                        >
+                          {{ matchActionLabel(finalLayout.match) }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+
+                  <div
+                    class="player-row group/player"
+                    [class.current-user]="isCurrentUser(finalLayout.match.player1Id)"
+                    [class.winner]="isWinner(finalLayout.match, finalLayout.match.player1Id)"
+                    [class.loser]="isLoser(finalLayout.match, finalLayout.match.player1Id)"
+                    [class.dimmed]="isDimmedByHover(finalLayout.match, finalLayout.match.player1Id)"
+                    (mouseenter)="setHoveredPlayer(finalLayout.match.player1Id)"
+                    (mouseleave)="setHoveredPlayer(null)"
+                  >
+                    <div class="player-main">
+                      <span class="avatar">{{ userInitials(finalLayout.match.player1Id) }}</span>
+                      <span class="name">{{ userName(finalLayout.match.player1Id) }}</span>
+                    </div>
+                    <span class="stat-badge">{{ rowBadge(finalLayout.match, finalLayout.match.player1Id) }}</span>
+                    <span class="player-tooltip">
+                      {{ userDeckName(finalLayout.match.player1Id) }} · {{ participantRecord(finalLayout.match.player1Id) }}
+                    </span>
+                  </div>
+
+                  <div
+                    class="player-row group/player"
+                    [class.current-user]="isCurrentUser(finalLayout.match.player2Id)"
+                    [class.winner]="isWinner(finalLayout.match, finalLayout.match.player2Id)"
+                    [class.loser]="isLoser(finalLayout.match, finalLayout.match.player2Id)"
+                    [class.dimmed]="isDimmedByHover(finalLayout.match, finalLayout.match.player2Id)"
+                    (mouseenter)="setHoveredPlayer(finalLayout.match.player2Id)"
+                    (mouseleave)="setHoveredPlayer(null)"
+                  >
+                    <div class="player-main">
+                      <span class="avatar">{{ userInitials(finalLayout.match.player2Id) }}</span>
+                      <span class="name">{{ userName(finalLayout.match.player2Id) }}</span>
+                    </div>
+                    <span class="stat-badge">{{ rowBadge(finalLayout.match, finalLayout.match.player2Id) }}</span>
+                    <span class="player-tooltip">
+                      {{ userDeckName(finalLayout.match.player2Id) }} · {{ participantRecord(finalLayout.match.player2Id) }}
+                    </span>
+                  </div>
+                </article>
+              }
+            </div>
+
+            <div class="hud-controls" aria-hidden="false">
+              <button class="hud-btn" type="button" (click)="zoomIn()" aria-label="Zoom in">
+                <span class="material-symbols-outlined">zoom_in</span>
+              </button>
+              <button class="hud-btn" type="button" (click)="resetView()" aria-label="Recenter">
+                <span class="material-symbols-outlined">center_focus_strong</span>
+              </button>
+              <button class="hud-btn" type="button" (click)="zoomOut()" aria-label="Zoom out">
+                <span class="material-symbols-outlined">zoom_out</span>
+              </button>
+            </div>
+          </div>
+        }
+      </main>
+
+      <aside class="glass-hud context-panel min-h-0 rounded-2xl p-4 shadow-[0_24px_60px_rgba(5,9,18,.42)]">
+        <div class="flex items-center justify-between">
+          <p class="hud-kicker" [class.sr-only]="contextPanelCollapsed()">Duelistas</p>
+          <button class="hud-icon" type="button" (click)="toggleContextPanel()" aria-label="Alternar panel de duelistas">
+            <span class="material-symbols-outlined text-base">
+              {{ contextPanelCollapsed() ? 'right_panel_open' : 'right_panel_close' }}
+            </span>
+          </button>
+        </div>
+
+        @if (!contextPanelCollapsed()) {
+          <div class="no-scrollbar mt-5 max-h-[calc(100vh-11rem)] space-y-2 overflow-y-auto pr-1">
+            @for (p of t.participants; track p.userId) {
+              <article
+                class="participant-card group relative rounded-xl bg-surface-container/38 px-3 py-3 transition hover:bg-surface-container-high/72"
+                (mouseenter)="setHoveredPlayer(p.userId)"
+                (mouseleave)="setHoveredPlayer(null)"
+              >
+                <div class="flex items-center gap-3">
+                  <span class="avatar">{{ userInitials(p.userId) }}</span>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate font-body text-sm font-bold text-white">{{ p.displayName || p.username }}</p>
+                    <p class="truncate font-headline text-xs text-on-surface/48">{{ p.deckName }}</p>
+                  </div>
+                  <span class="stat-badge">{{ participantRecord(p.userId) }}</span>
+                </div>
+
+                <span class="participant-glow"></span>
+              </article>
+            } @empty {
+              <p class="rounded-xl bg-surface-container/35 p-4 text-sm text-on-surface/56">Aún no hay duelistas inscritos.</p>
+            }
+          </div>
+        } @else {
+          <div class="mt-8 flex h-[calc(100%-4rem)] flex-col items-center gap-4">
+            <span class="hud-rail-label">Roster</span>
+            <span class="font-headline text-xl font-bold text-secondary">{{ t.participantCount }}</span>
+          </div>
+        }
+      </aside>
+    </div>
+  }
+</section>

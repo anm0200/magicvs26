@@ -11,16 +11,33 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+    container_name: magicvs-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   backend:
     build:
       context: ./backend
     container_name: magicvs-backend
     environment:
+      SPRING_PROFILES_ACTIVE: backend
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/magicvs
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      SMTP_USER: "noreplymagicvs@gmail.com"
-      SMTP_PASS: "qhxmzwbsoozavefg"
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SMTP_HOST: "smtp-relay.brevo.com"
+      SMTP_PORT: "587"
+      SMTP_USER: "ac716e001@smtp-brevo.com"
+      SMTP_PASS: "xsmtpsib-66c2d82e67c60891069847d8142822801b9a733b003dcdde40e317152f3b0322-0WZBeDbnyDZGdSgj"
       SMTP_FROM: "noreplymagicvs@gmail.com"
       DECK_MIN_CARDS: ${DECK_MIN_CARDS:-60}
     ports:
@@ -28,7 +45,31 @@ services:
     volumes:
       - ./frontend/src/assets/cards:/app/cards
     depends_on:
-      - postgres
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_healthy
+
+  data-ingestion-worker:
+    build:
+      context: ./backend
+    container_name: magicvs-data-ingestion-worker
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: worker
+      SPRING_MAIN_WEB_APPLICATION_TYPE: none
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/magicvs
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    volumes:
+      - ./frontend/src/assets/cards:/app/cards
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_healthy
 
   frontend:
     build:
@@ -43,3 +84,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:
