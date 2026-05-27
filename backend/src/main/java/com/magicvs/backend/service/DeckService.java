@@ -19,8 +19,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -175,6 +177,16 @@ public DeckResponseDTO createDeck(String authorization, CreateDeckDTO deckDTO) {
     @Transactional(readOnly = true)
     public List<DeckSummaryDTO> getUserDecks(Long userId) {
         return deckRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
+            .map(this::toDeckSummary)
+            .collect(Collectors.toList());
+    }
+
+    /**
+     * Obtiene los mazos públicos visibles para cualquier usuario
+     */
+    @Transactional(readOnly = true)
+    public List<DeckSummaryDTO> getPublicDecks() {
+        return deckRepository.findPublicDecksOrderByUpdatedAtDesc().stream()
             .map(this::toDeckSummary)
             .collect(Collectors.toList());
     }
@@ -348,7 +360,7 @@ public DeckResponseDTO copyDeck(Long deckId, String authorization) {
     }
 
     private DeckSummaryDTO toDeckSummary(Deck deck) {
-        return new DeckSummaryDTO(
+        DeckSummaryDTO summary = new DeckSummaryDTO(
             deck.getId(),
             deck.getName(),
             deck.getFormat() != null ? deck.getFormat().name() : DeckFormat.STANDARD.name(),
@@ -357,6 +369,80 @@ public DeckResponseDTO copyDeck(Long deckId, String authorization) {
             deck.getPublic(),
             getBestArtCrop(deck)
         );
+
+        summary.setAverageCmc(calculateAverageCmc(deck));
+        summary.setTotalManaCost(calculateTotalManaCost(deck));
+        summary.setCardNames(extractCardNames(deck));
+        summary.setColorIdentity(extractColorIdentity(deck));
+        return summary;
+    }
+
+    private Double calculateAverageCmc(Deck deck) {
+        if (deck.getCards() == null || deck.getCards().isEmpty()) {
+            return 0.0;
+        }
+
+        double totalCmc = 0.0;
+        int totalCards = 0;
+
+        for (com.magicvs.backend.model.DeckCard deckCard : deck.getCards()) {
+            double cmc = deckCard.getCard().getCmc() != null ? deckCard.getCard().getCmc().doubleValue() : 0.0;
+            int quantity = deckCard.getQuantity() != null ? deckCard.getQuantity() : 0;
+            totalCmc += cmc * quantity;
+            totalCards += quantity;
+        }
+
+        return totalCards > 0 ? totalCmc / totalCards : 0.0;
+    }
+
+    private Double calculateTotalManaCost(Deck deck) {
+        if (deck.getCards() == null || deck.getCards().isEmpty()) {
+            return 0.0;
+        }
+
+        double total = 0.0;
+        for (com.magicvs.backend.model.DeckCard deckCard : deck.getCards()) {
+            double cmc = deckCard.getCard().getCmc() != null ? deckCard.getCard().getCmc().doubleValue() : 0.0;
+            int quantity = deckCard.getQuantity() != null ? deckCard.getQuantity() : 0;
+            total += cmc * quantity;
+        }
+
+        return total;
+    }
+
+    private List<String> extractCardNames(Deck deck) {
+        if (deck.getCards() == null || deck.getCards().isEmpty()) {
+            return List.of();
+        }
+
+        return deck.getCards().stream()
+            .map(deckCard -> deckCard.getCard().getName())
+            .distinct()
+            .collect(Collectors.toList());
+    }
+
+    private List<String> extractColorIdentity(Deck deck) {
+        if (deck.getCards() == null || deck.getCards().isEmpty()) {
+            return List.of();
+        }
+
+        Set<String> colors = new HashSet<>();
+        for (com.magicvs.backend.model.DeckCard deckCard : deck.getCards()) {
+            String colorJson = deckCard.getCard().getColorIdentityJson();
+            if (colorJson == null || colorJson.isBlank()) {
+                colorJson = deckCard.getCard().getColorsJson();
+            }
+
+            if (colorJson != null) {
+                for (String color : List.of("W", "U", "B", "R", "G")) {
+                    if (colorJson.contains('"' + color + '"')) {
+                        colors.add(color);
+                    }
+                }
+            }
+        }
+
+        return colors.stream().sorted().collect(Collectors.toList());
     }
 
     private String getBestArtCrop(Deck deck) {

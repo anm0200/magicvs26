@@ -2,11 +2,10 @@
   <header class="mb-16 space-y-8">
     <div class="flex flex-col items-center text-center space-y-4">
       <h1 class="font-headline text-5xl md:text-7xl font-bold tracking-tighter text-primary">
-        Catálogo Arcano
+        {{ collectionOnly() ? 'Tu Colección' : 'Catálogo Arcano' }}
       </h1>
       <p class="text-on-surface-variant font-light tracking-wide max-w-2xl">
-        Busca en los antiguos archivos de poder. Filtra por esencia de maná, rareza o tipo de carta para refinar tu
-        grimorio.
+        {{ collectionOnly() ? 'Tus cartas obtenidas. Filtra por color, rareza o tipo.' : 'Busca en los antiguos archivos de poder. Filtra por esencia de maná, rareza o tipo de carta para refinar tu grimorio.' }}
       </p>
     </div>
 
@@ -37,8 +36,11 @@
             }"
             class="w-10 h-10 rounded-full border transition-all flex items-center justify-center group"
             [title]="mana">
-            <span class="font-headline font-bold text-xs group-hover:scale-110 transition-transform"
-                  [ngClass]="{'text-primary': activeMana().includes(mana)}">{{ mana }}</span>
+            <img
+              [src]="'https://svgs.scryfall.io/card-symbols/' + mana + '.svg'"
+              [alt]="mana"
+              class="w-6 h-6 group-hover:scale-110 transition-transform"
+              [class.opacity-50]="!activeMana().includes(mana)" />
           </button>
         }
       </div>
@@ -161,6 +163,13 @@
               <span class="text-sm font-bold text-secondary">{{ getManaCostString(card.manaCost) }}</span>
             </div>
           </div>
+
+          <!-- Quantity Badge (Only in Collection Mode) -->
+          @if (collectionOnly() && collectionQuantities()[card.id]) {
+            <div class="absolute top-2 right-2 bg-purple-600/90 text-white font-bold px-2 py-1 rounded-lg text-sm border border-purple-400/50 shadow-lg z-20 backdrop-blur-sm pointer-events-none">
+              x{{ collectionQuantities()[card.id] }}
+            </div>
+          }
         </div>
       }
     }
@@ -217,17 +226,9 @@
               <h2 class="text-3xl md:text-4xl font-headline font-bold text-white tracking-tighter">{{ hoveredCard().name }}</h2>
               <div class="flex gap-1.5 flex-wrap justify-end">
                 @for (cost of hoveredCard().manaCost; track $index) {
-                  <div class="w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs border border-white/5"
-                       [ngClass]="{
-                         'bg-surface-container-highest text-on-surface': !['W','U','B','R','G'].includes(cost),
-                         'bg-white text-black': cost === 'W',
-                         'bg-[#0E68AB] text-white': cost === 'U',
-                         'bg-[#150B00] text-white border-white/20': cost === 'B',
-                         'bg-[#D3202A] text-white': cost === 'R',
-                         'bg-[#00733E] text-white': cost === 'G'
-                       }">
-                    {{ cost }}
-                  </div>
+                  <img [src]="'https://svgs.scryfall.io/card-symbols/' + cost + '.svg'"
+                       [alt]="cost"
+                       class="w-7 h-7" />
                 }
               </div>
             </div>
