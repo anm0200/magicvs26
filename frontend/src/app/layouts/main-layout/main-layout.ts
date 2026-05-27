@@ -9,6 +9,7 @@ import { UserService } from '../../core/services/user.service';
 import { FriendshipService } from '../../core/services/friendship.service';
 import { ToastService } from '../../core/services/toast.service';
 import { ArenaService } from '../../core/services/arena.service';
+import { TournamentService } from '../../core/services/tournament.service';
 import { ConfirmDialogComponent } from '../../shared/components/confirm-dialog/confirm-dialog.component';
 import { ChatWindowComponent } from '../../shared/components/chat-window/chat-window.component';
 import { FriendsListComponent } from '../../shared/components/friends-list/friends-list.component';
@@ -56,6 +57,7 @@ export class MainLayout {
   private readonly friendshipService = inject(FriendshipService);
   private readonly toastService = inject(ToastService);
   private readonly arenaService = inject(ArenaService);
+  private readonly tournamentService = inject(TournamentService);
   private readonly chatService = inject(ChatService);
 
   constructor(private router: Router) {
@@ -207,11 +209,18 @@ export class MainLayout {
 
   acceptBattleInvite(notification: AppNotification): void {
     const matchId = notification.data?.['matchId'];
+
+    if (this.isTournamentBattleInvite(notification)) {
+      this.acceptTournamentBattleInvite(notification);
+      return;
+    }
+
     if (matchId) {
       this.arenaService.acceptInvite(Number(matchId)).subscribe({
         next: () => {
           this.toastService.show('¡Desafío aceptado! Entrando a la arena...', 'success');
           this.notificationService.deleteNotification(notification.id);
+          this.notificationService.setDropdownOpen(false);
           this.router.navigateByUrl(`/battle/${matchId}`);
         },
         error: () => this.toastService.show('Error al aceptar la invitación', 'error')
@@ -219,8 +228,39 @@ export class MainLayout {
     } else {
       this.toastService.show('¡Desafío aceptado! Buscando mesa...', 'success');
       this.notificationService.deleteNotification(notification.id);
+      this.notificationService.setDropdownOpen(false);
       this.router.navigateByUrl('/arena');
     }
+  }
+
+  isTournamentBattleInvite(notification: AppNotification): boolean {
+    return notification.type === 'BATTLE_INVITE'
+      && (notification.data?.['tournamentId'] != null || notification.data?.['tournamentMatchId'] != null);
+  }
+
+  private acceptTournamentBattleInvite(notification: AppNotification): void {
+    const tournamentMatchId = notification.data?.['tournamentMatchId'];
+    if (!tournamentMatchId) {
+      this.toastService.show('No se ha podido identificar el match de torneo', 'error');
+      return;
+    }
+
+    this.tournamentService.acceptTournamentMatch(Number(tournamentMatchId)).subscribe({
+      next: (result) => {
+        this.notificationService.deleteNotification(notification.id);
+        this.notificationService.setDropdownOpen(false);
+
+        if (result.ready && result.battleMatchId) {
+          this.toastService.show('Ambos jugadores listos. Entrando a la arena...', 'success');
+          this.router.navigateByUrl(result.link || `/battle/${result.battleMatchId}`);
+          return;
+        }
+
+        this.toastService.show('Listo confirmado. Esperando al rival...', 'info');
+        this.router.navigateByUrl(result.link || `/tournaments/${notification.data?.['tournamentId']}`);
+      },
+      error: () => this.toastService.show('Error al confirmar el match de torneo', 'error')
+    });
   }
 
   rejectBattleInvite(notification: AppNotification): void {
@@ -296,6 +336,11 @@ export class MainLayout {
 
   get toasts(): ToastNotification[] {
     return this.notificationService.toasts();
+  }
+
+  get isImmersiveRoute(): boolean {
+    const url = this.router.url.split('?')[0];
+    return url === '/tournaments' || url.startsWith('/tournaments/');
   }
 
   @HostListener('document:click')

@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "matches")
+@Table(name = "arena_matches")
 public class Match {
 
     @Id
@@ -24,14 +24,17 @@ public class Match {
     private Long winnerId;
 
     // --- LÓGICA DE ELO ---
-    @Transient
-    private Integer eloBeforeP1;
-    @Transient
-    private Integer eloBeforeP2;
-    @Transient
-    private Integer eloAfterP1;
-    @Transient
-    private Integer eloAfterP2;
+    @Column(name = "elo_before_p1")
+    private int eloBeforeP1;
+
+    @Column(name = "elo_before_p2")
+    private int eloBeforeP2;
+
+    @Column(name = "elo_after_p1")
+    private int eloAfterP1;
+
+    @Column(name = "elo_after_p2")
+    private int eloAfterP2;
     private Integer eloChange; // Diferencia neta opcional
 
     // --- ESTADO Y FORMATO ---

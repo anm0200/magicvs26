@@ -14,8 +14,13 @@ public interface FavoriteCardRepository extends JpaRepository<FavoriteCard, Long
 
     Optional<FavoriteCard> findByUserIdAndCardId(Long userId, Long cardId);
 
+    java.util.List<FavoriteCard> findByCardId(Long cardId);
+
     @Modifying
     @Query("DELETE FROM FavoriteCard f WHERE f.user.id = :userId AND f.card.id = :cardId")
     void deleteByUserIdAndCardId(@Param("userId") Long userId, @Param("cardId") Long cardId);
 
+    @Modifying
+    @Query("DELETE FROM FavoriteCard f WHERE f.card.id = :cardId")
+    void deleteByCardId(@Param("cardId") Long cardId);
 }
