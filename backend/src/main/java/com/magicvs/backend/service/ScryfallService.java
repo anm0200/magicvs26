@@ -22,7 +22,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
-@Profile("worker")
 public class ScryfallService {
 
     private static final Logger logger = LoggerFactory.getLogger(ScryfallService.class);
